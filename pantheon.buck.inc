@@ -22,7 +22,36 @@ function pantheon_buck_sync_files($site_record) {
 function pantheon_buck_sync_database($site_record) {
   drush_log('Syncing database from pantheon...', 'ok');
 
-  buck_create_database($site_record);
+  if (!drush_sql_db_exists($site_record) || !file_exists($site_record['root'] . '/sites/' . $site_record['uri'] . '/settings.php')) {
+    // Create database.
+    $site_record['db_pass'] = drush_generate_password();
+    $db_url = 'mysql://' . $site_record['database'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
+
+    $user = posix_getpwuid(posix_geteuid());
+    $db_super = parse_ini_file($user['dir'] . '/.my.cnf');
+    if (!$db_super['user']) {
+      drush_set_error("Your .my.cnf file is not setup correctly.");
+      return;
+    }
+    drush_invoke_process(
+      '@self',
+      'sql-create',
+      array("@" . $site_record['sync-source'], "@" . $site_record['#name']),
+      array('--db-url=' . $db_url, '--db-su=' . $db_super['user'], '--db-su-pw=' . $db_super['password']),
+      array('interactive' => TRUE)
+    );
+
+    // Add settings.php
+    $str_config = BUCK_SETTINGS_PHP_TEMPLATE;
+    $str_config = str_replace("#DATABASE#", $site_record['database'], $str_config);
+    $str_config = str_replace("#USERNAME#", $site_record['database'], $str_config);
+    $str_config = str_replace("#PASSWORD#", $site_record['db_pass'], $str_config);
+    $str_config = str_replace("#URL#", 'http://' . $site_record['uri'], $str_config);
+
+    drush_mkdir($site_record['root'] . "/sites/" . $site_record['uri']);
+    $config_handle = fopen($site_record['root'] . "/sites/" . $site_record['uri'] . "/settings.php", "w+");
+    fwrite($config_handle, $str_config);
+  }
 
   $tmp_dir = drush_tempdir();
   $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
@@ -34,7 +63,6 @@ function pantheon_buck_sync_database($site_record) {
     $db_opt = '  --db-url=' . $db_url;
   }
   $sql_cmd = 'drush ' . '@' . $site_record['#name'] . ' sqlc < ' . $temp_file . $db_opt;
-  drush_print_r($sql_cmd);
   buck_shell_exec($sql_cmd);
   drush_log("... done", "ok");
 }
