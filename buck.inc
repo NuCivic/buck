@@ -438,7 +438,6 @@ function buck_profile_install($site_record) {
   );
   $user = posix_getpwuid(posix_geteuid());
   if (!$site_record['db-su']) {
-    die('two');
     $db_super = parse_ini_file($user['dir'] . '/.my.cnf');
     if (!$db_super['user']) {
       throw new Exception("Your .my.cnf file is not setup correctly.");
