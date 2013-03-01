@@ -21,6 +21,7 @@ function pantheon_buck_sync_files($site_record) {
  */
 function pantheon_buck_sync_database($site_record) {
   drush_log('Syncing database from pantheon...', 'ok');
+  $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
 
   if (!drush_sql_db_exists($site_record) || !file_exists($site_record['root'] . '/sites/' . $site_record['uri'] . '/settings.php')) {
     // Create database.
@@ -56,6 +57,8 @@ function pantheon_buck_sync_database($site_record) {
   $tmp_dir = drush_tempdir();
   $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
   $dump_cmd = 'drush @' . $site_record['sync-source']  . ' sql-dump > ' . $temp_file;
+  $dump_cmd = 'mysqldump -u ' . $site_record['sync-sql-user'] . ' -p' . $site_record['sync-sql-pass'] . ' -h dbserver.' . $sync_source['remote-user'] . '.drush.in -P ' . $site_record['sync-sql-port']  . ' ' . $site_record['sync-sql-db'] . ' > ' . $temp_file;
+  drush_print_r($dump_cmd);
   buck_shell_exec($dump_cmd);
   $db_opt = '';
   if ($site_record['db_pass']) {

@@ -332,7 +332,11 @@ function buck_profile_git($site_record) {
     drush_shell_cd_and_exec($profile_dir, 'sh ' . $site_record['profile'] . '.rebuild.sh');
   }
   else {
-    throw new Exception("Could not find .gitignore or rebuild.sh.");
+    drush_log(dt('Could not find .gitignore or rebuild.sh. Rebuilding by removing default profile folders.'));
+    drush_delete_dir($profile_dir . '/libraries');
+    drush_delete_dir($profile_dir . '/modules/contrib');
+    drush_delete_dir($profile_dir . '/themes/contrib');
+    drush_shell_cd_and_exec($profile_dir, 'drush -y make --no-core --contrib-destination=. drupal-org.make');
   }
 }
 
@@ -474,9 +478,6 @@ function buck_profile_install($site_record) {
  */
 function buck_profile_make($site_record) {
   if (isset($site_record['makefile'])) {
-    if (!file_exists($site_record['base_root'])) {
-      buck_create_root($site_record);
-    }
 
     drush_log("Downloading and installing through make file ...", 'ok');
     $make = drush_invoke_process(
