@@ -73,7 +73,7 @@ function buck_drush_command() {
   );
   $items['buck-fixperms'] = array(
     'description' => "Fix permissions for a buck development website:
-    \$ sudo chown -R CURRENT_USER:www-data <codepath>
+    \$ sudo chown -R CURRENT_USER:APACHE_USER <codepath>
     \$ sudo chmod -R a=,u=rwX,g=rX <codepath>
     \$ sudo find <root>/sites -type d -name files -exec chmod -R a=,ug=rwX '{}' \;
     \$ sudo find <root>/sites -type d -name files_private -exec chmod -R a=,ug=rwX '{}' \;",
@@ -156,7 +156,8 @@ function drush_buck_fixperms($environment = NULL) {
 
   $root = $site_record['root'];
   $current_user = exec('echo "$(whoami)"');
-  buck_shell_exec("chown -R $current_user:www-data $root");
+  $apache_user = $site_record['os'] == 'Linux' ? 'www-data' : '_www'; 
+  buck_shell_exec("chown -R $current_user:$apache_user $root");
   buck_shell_exec("chmod -R a=,u=rwX,g=rX $root");
   // Find directories named "files" and run chmod on them.
   buck_shell_exec("find $root/sites -type d -name files -exec chmod -R a=,ug=rwX '{}' \;");

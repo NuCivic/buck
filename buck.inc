@@ -192,10 +192,12 @@ function buck_create_webserver_config($site_record) {
   $config_handle = fopen("/etc/apache2/sites-available/$domain", "w+");
   fwrite($config_handle, $str_config);
 
-  buck_shell_exec("sudo a2ensite $domain");
+  if ($site_record['os'] == 'Linux') {
+    buck_shell_exec("sudo a2ensite $domain");
+  }
 
   // restart apache
-  buck_shell_exec("sudo /etc/init.d/apache2 reload");
+  buck_shell_exec("sudo /usr/sbin/apachectl graceful");
 
   drush_log('... done.', 'ok');
 }
@@ -435,7 +437,6 @@ function buck_git_update($git_dir, $git_args) {
 function buck_profile_install($site_record) {
   drush_log('Installing ' . $site_record['profile'] . ' ...', 'ok');
 
-
   $sql_connect = drush_invoke_process(
     '@self',
     'sql-connect'
@@ -612,6 +613,7 @@ function _buck_default_params($site_record) {
   $defaults['locale'] = 'en';
   $defaults['clean-url'] = '1';
   $defaults['driver'] = 'mysql';
+  $defaults['os'] = _drush_get_os();
   $defaults['site-name'] = $domain;
   $defaults['site-mail'] = 'info@'. $domain;
   $defaults['sites-subdir'] = 'default';
@@ -699,4 +701,3 @@ function _buck_env_prepare($site_record) {
   _buck_check_params($site_record, $required);
   return $site_record;
 }
-

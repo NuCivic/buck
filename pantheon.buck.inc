@@ -10,6 +10,12 @@
  */
 function pantheon_buck_sync_files($site_record) {
   drush_log('Syncing files from pantheon...', 'ok');
+
+  $files_dir = $site_record['root'] . '/' . $site_record['path-aliases']['%files'];
+  // Make sure we have something to rsync into.
+  if (!file_exists($files_dir)) {
+    drush_mkdir($files_dir);
+  }
   $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
   $cmd = '/usr/bin/rsync -rlvz --ipv4 --progress -e \'ssh -p 2222\' ' . $sync_source['remote-user'] . '@' . $sync_source['remote-host'] . ':files/ ' . $site_record['root'] . '/' . $site_record['path-aliases']['%files'] . '/';
   buck_shell_exec($cmd);
@@ -58,7 +64,6 @@ function pantheon_buck_sync_database($site_record) {
   $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
   $dump_cmd = 'drush @' . $site_record['sync-source']  . ' sql-dump > ' . $temp_file;
   $dump_cmd = 'mysqldump -u ' . $site_record['sync-sql-user'] . ' -p' . $site_record['sync-sql-pass'] . ' -h dbserver.' . $sync_source['remote-user'] . '.drush.in -P ' . $site_record['sync-sql-port']  . ' ' . $site_record['sync-sql-db'] . ' > ' . $temp_file;
-  drush_print_r($dump_cmd);
   buck_shell_exec($dump_cmd);
   $db_opt = '';
   if ($site_record['db_pass']) {
