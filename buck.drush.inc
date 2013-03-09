@@ -155,13 +155,24 @@ function drush_buck_fixperms($environment = NULL) {
   $site_record = drush_sitealias_get_record('@self');
 
   $root = $site_record['root'];
+  $files_dir = $root . '/' . $site_record['path-aliases']['%files'];
   $current_user = exec('echo "$(whoami)"');
-  $apache_user = $site_record['os'] == 'Linux' ? 'www-data' : '_www'; 
-  buck_shell_exec("chown -R $current_user:$apache_user $root");
-  buck_shell_exec("chmod -R a=,u=rwX,g=rX $root");
-  // Find directories named "files" and run chmod on them.
-  buck_shell_exec("find $root/sites -type d -name files -exec chmod -R a=,ug=rwX '{}' \;");
-  buck_shell_exec("find $root/sites -type d -name files_private -exec chmod -R a=,ug=rwX '{}' \;");
+  $apache_user = _drush_get_os() == 'Darwin' ? '_www' : 'www-data';
+  drush_log("Giving current user and apache ownership ...", 'ok');
+  // If the files directory already exists and the webserver has written files
+  // changing the ownership will throw errors since they are owned by www-data.
+  buck_shell_exec("chown $current_user:$apache_user $files_dir");
+  buck_shell_exec("find $root -type d -path $files_dir -prune -o -path '*/.git*' -prune -o -exec chown $current_user:$apache_user '{}' \;");
+  drush_log("Changing permissions of all directories inside $root to rwxr-x--- ...", 'ok');
+  buck_shell_exec("find $root -type d -not -iwholename \"*.git*\" -not -iwholename \"$files_dir*\" -exec chmod u=rwx,g=rx,o= '{}' \;");
+  drush_log("Changing permissions of all files inside $root to rw-r----- ...", 'ok');
+  buck_shell_exec("find $root -type f -not -iwholename \"*.git*\" -not -iwholename \"$files_dir*\" -exec chmod u=rw,g=r,o= '{}' \;");
+
+  // Find "files" dir and run chmod on them.
+  drush_log("Finding files and private files and making them writable by web server ...", 'ok');
+  // TODO: add support for private files.
+  buck_shell_exec("chmod chmod a=,ug=rwX $files_dir");
+  return '';
 }
 
 /**

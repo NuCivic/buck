@@ -178,7 +178,7 @@ function buck_create_webserver_config($site_record) {
   $domain = $site_record['uri'];
   if (file_exists("/etc/apache2/sites-available/$domain")) {
     if (!drush_confirm(dt('Vhost ' .  $domain . ' already exists. Do you want to erase its contents?'))) {
-      return drush_set_error(0, dt('You did not wish to overwrite the vhost. Aborting.'));
+      return;
     }
   }
 
@@ -559,12 +559,18 @@ function buck_create_database(&$site_record) {
  * Assigns proper permissions to files and settings.php.
  */
 function buck_permissions_cleanup($site_record) {
+  if (!drush_confirm(dt('Do you want to cleanup the file permissions? This may take a minute.'))) {
+    return;
+  }
   $root = $site_record['root'];
   drush_log("Cleaning up permissions ...", 'ok');
   $cmd = 'buck-fixperms';
   drush_invoke_process(
     '@self',
-    $cmd
+    $cmd,
+    array(),
+    array('invoke' => TRUE),
+    array('fork' => TRUE, 'dispatch-using-alias' => TRUE)
   );
   drush_log('... done.', 'ok');
 }
@@ -629,8 +635,11 @@ function _buck_default_params($site_record) {
   $site_record = array_merge($defaults, $site_record);
 
   // This will be blank unless added to alias.
-  $site_record['db-url'] = $site_record['db-url'] ? $site_record['db-url'] : 'mysql://' . $site_record['dbuser'] . ':' . $site_record['dbpassword'] . '@localhost/' . $site_record['database'];
+  $site_record['db-url'] = isset($site_record['db-url']) ? $site_record['db-url'] : 'mysql://' . $site_record['dbuser'] . ':' . $site_record['dbpassword'] . '@localhost/' . $site_record['database'];
   // It might be better to drush_set_option() than return.
+ // drush_set_option('alias', $site_record);
+  //drush_sitealias_set_alias_context($site_record);
+  //drush_print_r(drush_sitealias_get_record('@self'));
   return $site_record;
 }
 
@@ -657,7 +666,7 @@ function _buck_check_params($site_record,  $required) {
       throw new Exception("Buck could not complete execution.");
     }
   }
-  return $pass;
+  return TRUE;
 }
 
 /**
