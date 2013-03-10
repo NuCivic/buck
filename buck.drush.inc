@@ -141,7 +141,8 @@ function drush_buck($environment = NULL) {
   }
 
   drush_log("Command completed successfully.", "success");
-  return true;
+
+  return TRUE;
 }
 
 /**
@@ -154,25 +155,31 @@ function drush_buck($environment = NULL) {
 function drush_buck_fixperms($environment = NULL) {
   $site_record = drush_sitealias_get_record('@self');
 
-  $root = $site_record['root'];
-  $files_dir = $root . '/' . $site_record['path-aliases']['%files'];
-  $current_user = exec('echo "$(whoami)"');
-  $apache_user = _drush_get_os() == 'Darwin' ? '_www' : 'www-data';
-  drush_log("Giving current user and apache ownership ...", 'ok');
-  // If the files directory already exists and the webserver has written files
-  // changing the ownership will throw errors since they are owned by www-data.
-  buck_shell_exec("chown $current_user:$apache_user $files_dir");
-  buck_shell_exec("find $root -type d -path $files_dir -prune -o -path '*/.git*' -prune -o -exec chown $current_user:$apache_user '{}' \;");
-  drush_log("Changing permissions of all directories inside $root to rwxr-x--- ...", 'ok');
-  buck_shell_exec("find $root -type d -not -iwholename \"*.git*\" -not -iwholename \"$files_dir*\" -exec chmod u=rwx,g=rx,o= '{}' \;");
-  drush_log("Changing permissions of all files inside $root to rw-r----- ...", 'ok');
-  buck_shell_exec("find $root -type f -not -iwholename \"*.git*\" -not -iwholename \"$files_dir*\" -exec chmod u=rw,g=r,o= '{}' \;");
+  $drupal_path = $site_record['root'];
+  $files_dir = $drupal_path . '/' . $site_record['path-aliases']['%files'];
+  $drupal_user = exec('echo "$(whoami)"');
+  $httpd_group = _drush_get_os() == 'Darwin' ? '_www' : 'www-data';
 
-  // Find "files" dir and run chmod on them.
-  drush_log("Finding files and private files and making them writable by web server ...", 'ok');
+  drush_log("Changing ownership of all contents of $drupal_path user => $drupal_user group => $httpd_group", 'ok');
+  buck_shell_exec("sudo chown -R $drupal_user:$httpd_group $drupal_path");
+
+  drush_log("Changing permissions of all directories inside $drupal_path to rwxr-x--- ...", 'ok');
+  buck_shell_exec("sudo find $drupal_path -type d -exec chmod u=rwx,g=rx,o= '{}' \;");
+
+  drush_log("Changing permissions of all files inside $drupal_path to rw-r----- ...", 'ok');
+  buck_shell_exec("sudo find $drupal_path -type f -exec chmod u=rw,g=r,o= '{}' \;");
+
+  drush_log("Changing permissions of \"files\" directories in $drupal_path/sites to rwxrwx--- ...", 'ok');
+  buck_shell_exec("sudo find $drupal_path/sites -type d -name files -exec chmod ug=rwx,o= '{}' \;");
+
+  drush_log("Changing permissions of all files inside $files_dir to rw-rw---- ...", 'ok');
+  buck_shell_exec("sudo find $files_dir -type d -exec chmod ug=rwx,o= '{}' \;");
+
   // TODO: add support for private files.
-  buck_shell_exec("chmod chmod a=,ug=rwX $files_dir");
-  return '';
+  drush_log("Changing permissions of all directories inside $files_dir to rwxrwx--- ..", 'ok');
+  buck_shell_exec("sudo find $files_dir -type f -exec chmod ug=rw,o= '{}' \;");
+
+  return TRUE;
 }
 
 /**

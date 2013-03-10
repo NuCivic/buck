@@ -570,7 +570,7 @@ function buck_permissions_cleanup($site_record) {
     $cmd,
     array(),
     array('invoke' => TRUE),
-    array('fork' => TRUE, 'dispatch-using-alias' => TRUE)
+    array('dispatch-using-alias' => TRUE)
   );
   drush_log('... done.', 'ok');
 }
