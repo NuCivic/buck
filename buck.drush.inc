@@ -134,12 +134,12 @@ function drush_buck($environment = NULL) {
       buck_profile_install($site_record);
     }
     // Add vhost.
-    if (!drush_get_option('no-web', FALSE))) {
+    if (!drush_get_option('no-web', FALSE)) {
       buck_create_webserver_config($site_record);
     }
 
     // Cleanup
-    if (!drush_get_option('no-perms', FALSE))) {
+    if (!drush_get_option('no-perms', FALSE)) {
       buck_permissions_cleanup($site_record);
     }
 
