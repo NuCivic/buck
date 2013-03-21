@@ -53,6 +53,8 @@ function buck_drush_command() {
       'site-name'    => 'Optional.  Site name.  Defaults to "[domain]"',
       'site-mail'    => 'Optional.  Site default email.  Defaults to "info@[domain]"',
       'sync-source' => 'Optional.  Site that @self will sync from."',
+      'no-perms' => 'Skip permission check',
+      'no-web' => 'Skip webserver creation or update',
     ),
     'examples' => array(
       'Create D7 site in one command: setup dns, apache, create db, download d6, run installer, open in firefox' => 'drush buck-create --domain=example1.dev',
@@ -101,6 +103,7 @@ function buck_drush_command() {
  */
 function drush_buck($environment = NULL) {
   $site_record = drush_sitealias_get_record('@self');
+  die();
 
   try {
     $site_record = _buck_env_prepare($site_record);
@@ -131,10 +134,14 @@ function drush_buck($environment = NULL) {
       buck_profile_install($site_record);
     }
     // Add vhost.
-    buck_create_webserver_config($site_record);
+    if (!drush_get_option('no-web', FALSE))) {
+      buck_create_webserver_config($site_record);
+    }
 
     // Cleanup
-    buck_permissions_cleanup($site_record);
+    if (!drush_get_option('no-perms', FALSE))) {
+      buck_permissions_cleanup($site_record);
+    }
 
   } catch (Exception $e) {
     $message = $e->getMessage();

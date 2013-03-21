@@ -568,7 +568,8 @@ function buck_generate_password($length = 10) {
  * Adds defaultis and configures several alias elements.
  */
 function _buck_default_params($site_record) {
-  // Should use drush_set_option() for these:
+  drush_print_r(drush_get_option());
+  die();
   $domain = str_replace('/', '', $site_record['uri']);
   $database = $site_record['#name'] != '@self' ? str_replace(array('.', '-'), '_', $site_record['#name']) : str_replace(array('.', '-'), '_', $domain);
   // These are defaults. They are overwritten if values are already present.
@@ -602,9 +603,6 @@ function _buck_default_params($site_record) {
   // This will be blank unless added to alias.
   $site_record['db-url'] = isset($site_record['db-url']) ? $site_record['db-url'] : 'mysql://' . $site_record['dbuser'] . ':' . $site_record['dbpassword'] . '@localhost/' . $site_record['database'];
   // It might be better to drush_set_option() than return.
- // drush_set_option('alias', $site_record);
-  //drush_sitealias_set_alias_context($site_record);
-  //drush_print_r(drush_sitealias_get_record('@self'));
   return $site_record;
 }
 
@@ -663,6 +661,7 @@ function _buck_required_params($command) {
  */
 function _buck_env_prepare($site_record) {
   $args = drush_get_arguments();
+
   // Grab command from arguments.
   $buck_command = array_shift($args);
 
