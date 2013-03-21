@@ -110,7 +110,9 @@ function drush_buck($environment = NULL) {
       if (!file_exists($site_record['base_root'])) {
         buck_profile_make($site_record);
       }
-      buck_profile_git($site_record);
+      else {
+        buck_update_profile($site_record);
+      }
       buck_profile_install($site_record);
       buck_revert_features($site_record);
     }

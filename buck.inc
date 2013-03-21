@@ -301,45 +301,20 @@ function buck_git_pull($directory) {
 /**
  * Updates existing profile managed by git.
  */
-function buck_profile_git($site_record) {
+function buck_update_profile($site_record) {
   $profile_dir = $site_record['root'] . '/profiles/' . $site_record['profile'];
-  // Remove files if not under version control.
-  buck_profile_make_clean($profile_dir);
-  buck_git_update($profile_dir, $site_record['git']);
-
-  // First look for .gitignore
-  $git_ignore = $profile_dir . '/.gitignore';
-  if (file_exists($git_ignore)) {
-    $profile_ignored = file($git_ignore);
-    foreach ($profile_ignored as $dir) {
-      drush_delete_dir($profile_dir . '/' . trim($dir));
-    }
-    $tmp_dir = drush_tempdir() . '/' . $site_record['profile'];
-    $make = drush_invoke_process(
-      '@self',
-      'make',
-      array($site_record['makefile'], $tmp_dir),
-      array('--no-core')
-    );
-
-    // Move ignore files from temp directory back into profile.
-    foreach ($profile_ignored as $dir) {
-      $ignore_dir = $tmp_dir . "/profiles/" . $site_record['profile'] . '/' . trim($dir);
-      drush_move_dir($ignore_dir, $profile_dir . '/' . trim($dir), TRUE);
-    }
-  }
-  // Second look for profile.rebuild.sh .
-  elseif(file_exists($profile_dir . '/' . $site_record['profile'] . '.rebuild.sh')) {
-    drush_log(dt('Could not find .gitignore file rebuilding with rebuild.sh.'));
-    drush_shell_cd_and_exec($profile_dir, 'sh ' . $site_record['profile'] . '.rebuild.sh');
-  }
-  else {
-    drush_log(dt('Could not find .gitignore or rebuild.sh. Rebuilding by removing default profile folders.'));
-    drush_delete_dir($profile_dir . '/libraries');
-    drush_delete_dir($profile_dir . '/modules/contrib');
-    drush_delete_dir($profile_dir . '/themes/contrib');
-    drush_shell_cd_and_exec($profile_dir, 'drush -y make --no-core --contrib-destination=. drupal-org.make');
-  }
+  buck_git_update($profile_dir);
+  // Drush make doesn't let you pass the root directory as an arg:
+  // http://drupal.org/node/1673676.
+  $cwd = getcwd();
+  buck_shell_exec("cd " . $site_record['root']);
+  $make = drush_invoke_process(
+    '@self',
+    'make',
+    array($site_record['makefile']),
+    array('--no-core',  '--working-copy', '-y','--contrib-destination=.')
+  );
+  buck_shell_exec("cd $cwd");
 }
 
 /**
@@ -415,7 +390,7 @@ function buck_sync_git($site_record) {
 /**
  * Updates a git repo or clones if it doesn't exist.
  */
-function buck_git_update($git_dir, $git_args) {
+function buck_git_update($git_dir, $git_args = NULL) {
   if (file_exists($git_dir . '/.git')) {
     drush_log('Git repo at ' . $git_dir . '/.git already exists. Updating...', 'ok');
     buck_git_pull($git_dir);
@@ -485,19 +460,9 @@ function buck_profile_make($site_record) {
       '@self',
       'make',
       array($site_record['makefile'], $site_record['root']),
-      array('--prepare-install')
+      array('--prepare-install', '--working-copy')
     );
     drush_log('... done.', 'ok');
-  }
-}
-
-/**
- * Removes profile files so we can use in version control.
- * This only occurs upon first installation.
- */
-function buck_profile_make_clean($profile_dir) {
-  if (!file_exists($profile_dir . '/.git') && file_exists($profile_dir)) {
-    drush_delete_dir($profile_dir);
   }
 }
 
@@ -508,7 +473,7 @@ function buck_sync_database($site_record) {
   if (buck_host_include($site_record, __FUNCTION__)) {
     return;
   }
- 
+
   buck_create_database($site_record);
   drush_invoke_process(
     '@self',
