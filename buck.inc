@@ -568,8 +568,6 @@ function buck_generate_password($length = 10) {
  * Adds defaultis and configures several alias elements.
  */
 function _buck_default_params($site_record) {
-  drush_print_r(drush_get_option());
-  die();
   $domain = str_replace('/', '', $site_record['uri']);
   $database = $site_record['#name'] != '@self' ? str_replace(array('.', '-'), '_', $site_record['#name']) : str_replace(array('.', '-'), '_', $domain);
   // These are defaults. They are overwritten if values are already present.
