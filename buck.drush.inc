@@ -103,7 +103,6 @@ function buck_drush_command() {
  */
 function drush_buck($environment = NULL) {
   $site_record = drush_sitealias_get_record('@self');
-  die();
 
   try {
     $site_record = _buck_env_prepare($site_record);
