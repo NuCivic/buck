@@ -435,7 +435,7 @@ function buck_profile_install($site_record) {
     "--site-name=" . $site_record['site-name'],
     '--sites-subdir=default'
   );
-  if (is_array($sql_connect)) {
+  if (!is_array($sql_connect)) {
     $db_pass = drush_generate_password();
     $opts[] = '--db-url=mysql://' . $site_record['dbuser'] . ':' . $db_pass . '@localhost/' . $site_record['database'];
   }
