@@ -284,7 +284,7 @@ function buck_create_root($site_record) {
 function buck_destroy_root($site_record) {
   $root = $site_record['base_root'];
   drush_log("Removing existing directory $root", "ok");
-  drush_shell_exec("rm -rf $root");
+  drush_shell_exec("sudo rm -rf $root");
   drush_log("... done", "ok");
 }
 
@@ -435,7 +435,9 @@ function buck_profile_install($site_record) {
     "--site-name=" . $site_record['site-name'],
     '--sites-subdir=default'
   );
-  if (!is_array($sql_connect)) {
+  // Supply db credentials if we can't connect. Output string will be
+  // empty spaces hence strlen.
+  if (strlen($sql_connect['output']) < 5) {
     $db_pass = drush_generate_password();
     $opts[] = '--db-url=mysql://' . $site_record['dbuser'] . ':' . $db_pass . '@localhost/' . $site_record['database'];
   }

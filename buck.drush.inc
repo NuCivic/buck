@@ -197,7 +197,7 @@ function drush_buck_fixperms($environment = NULL) {
  *
  * @return true on success
  */
-function drush_buck_destroy($site_record) {
+function drush_buck_destroy($site_record = array()) {
   $site_record = drush_sitealias_get_record('@self');
 
   try {
