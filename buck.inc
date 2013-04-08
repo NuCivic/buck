@@ -660,10 +660,14 @@ function _buck_required_params($command) {
  * Checks that alias exists and enough info is supplied.
  */
 function _buck_env_prepare($site_record) {
-  $args = drush_get_arguments();
+  // Allow cli args to override site alias elements.
+  $args = drush_get_context('cli');
+  $site_record = array_merge($site_record, $args);
+
+  $cmd = drush_get_arguments();
 
   // Grab command from arguments.
-  $buck_command = array_shift($args);
+  $buck_command = array_shift($cmd);
 
   // Add defaults.
   $site_record = _buck_default_params($site_record);
