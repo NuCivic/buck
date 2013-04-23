@@ -169,23 +169,23 @@ function drush_buck_fixperms($environment = NULL) {
   $httpd_group = _drush_get_os() == 'Darwin' ? '_www' : 'www-data';
 
   drush_log("Changing ownership of all contents of $drupal_path user => $drupal_user group => $httpd_group", 'ok');
-  buck_shell_exec("sudo chown -R $drupal_user:$httpd_group $drupal_path");
+  buck_shell_exec("chown -R $drupal_user:$httpd_group $drupal_path");
 
   drush_log("Changing permissions of all directories inside $drupal_path to rwxr-x--- ...", 'ok');
-  buck_shell_exec("sudo find $drupal_path -type d -exec chmod u=rwx,g=rx,o= '{}' \;");
+  buck_shell_exec("find $drupal_path -type d -exec chmod u=rwx,g=rx,o= '{}' \;");
 
   drush_log("Changing permissions of all files inside $drupal_path to rw-r----- ...", 'ok');
-  buck_shell_exec("sudo find $drupal_path -type f -exec chmod u=rw,g=r,o= '{}' \;");
+  buck_shell_exec("find $drupal_path -type f -exec chmod u=rw,g=r,o= '{}' \;");
 
   drush_log("Changing permissions of \"files\" directories in $drupal_path/sites to rwxrwx--- ...", 'ok');
-  buck_shell_exec("sudo find $drupal_path/sites -type d -name files -exec chmod ug=rwx,o= '{}' \;");
+  buck_shell_exec("find $drupal_path/sites -type d -name files -exec chmod ug=rwx,o= '{}' \;");
 
   drush_log("Changing permissions of all files inside $files_dir to rw-rw---- ...", 'ok');
-  buck_shell_exec("sudo find $files_dir -type d -exec chmod ug=rwx,o= '{}' \;");
+  buck_shell_exec("find $files_dir -type d -exec chmod ug=rwx,o= '{}' \;");
 
   // TODO: add support for private files.
   drush_log("Changing permissions of all directories inside $files_dir to rwxrwx--- ..", 'ok');
-  buck_shell_exec("sudo find $files_dir -type f -exec chmod ug=rw,o= '{}' \;");
+  buck_shell_exec("find $files_dir -type f -exec chmod ug=rw,o= '{}' \;");
 
   return TRUE;
 }

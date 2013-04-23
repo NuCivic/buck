@@ -18,12 +18,8 @@ function pantheon_buck_sync_files($site_record) {
   }
   $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
   $cmd = '/usr/bin/rsync -av --ipv4 --progress -e \'ssh -p 2222\' ' . $sync_source['remote-user'] . '@' . $sync_source['remote-host'] . ':files/ ' . $site_record['root'] . '/' . $site_record['path-aliases']['%files'] . '/';
-  if (!drush_shell_exec($cmd)) {
-    drush_log("... done", "ok");
-  }
-  else {
-    drush_log("Problem with $cmd", "error");
-  }
+  drush_shell_exec($cmd);
+  drush_log("... done", "ok");
 }
 
 /**
