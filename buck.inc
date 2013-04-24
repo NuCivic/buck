@@ -302,19 +302,11 @@ function buck_git_pull($directory) {
  * Updates existing profile managed by git.
  */
 function buck_update_profile($site_record) {
-  $profile_dir = $site_record['root'] . '/profiles/' . $site_record['profile'];
-  buck_git_update($profile_dir);
+  drush_log("Updating profile", "ok");
   // Drush make doesn't let you pass the root directory as an arg:
   // http://drupal.org/node/1673676.
-  $cwd = getcwd();
-  buck_shell_exec("cd " . $site_record['root']);
-  $make = drush_invoke_process(
-    '@self',
-    'make',
-    array($site_record['makefile']),
-    array('--no-core',  '--working-copy', '-y','--contrib-destination=.')
-  );
-  buck_shell_exec("cd $cwd");
+  drush_shell_cd_and_exec($site_record['root'], "drush make --contrib-destination=. --no-core --working-copy -y -v   " . $site_record['makefile']);
+  drush_log("... done", "ok");
 }
 
 /**
