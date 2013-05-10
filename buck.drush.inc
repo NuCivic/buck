@@ -73,7 +73,12 @@ function buck_drush_command() {
     'aliases' => array('bd'),
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all.
   );
-  $items['buck-fixperms'] = array(
+  $items['buck-sql'] = array(
+    'description' => "Sync a databse.",
+    'aliases' => array('bsql'),
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all.
+  );
+  $items['buck-perms'] = array(
     'description' => "Fix permissions for a buck development website:
     \$ sudo chown -R CURRENT_USER:APACHE_USER <codepath>
     \$ sudo chmod -R a=,u=rwX,g=rX <codepath>
@@ -208,6 +213,31 @@ function drush_buck_destroy($site_record = array()) {
     buck_destroy_database($site_record);
     buck_destroy_webserver_config($site_record);
     buck_destroy_root($site_record);
+  } catch (Exception $e) {
+    $message = $e->getMessage();
+    drush_log("Command failed: $message", "error");
+    return false;
+  }
+
+  drush_log("Command completed successfully.", "success");
+  return true;
+}
+
+/**
+ * Drush callback function for 'drush buck-destroy'
+ *
+ * Works step-by-step to destroy the site.
+ *
+ * @return true on success
+ */
+function drush_buck_sql($site_record = array()) {
+  $site_record = drush_sitealias_get_record('@self');
+
+  try {
+    if (!$site_record = _buck_env_prepare($site_record)) {
+      return;
+    }
+    buck_sync_database($site_record);
   } catch (Exception $e) {
     $message = $e->getMessage();
     drush_log("Command failed: $message", "error");

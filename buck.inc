@@ -614,11 +614,13 @@ function _buck_check_params($site_record,  $required) {
     throw new Exception("Buck could not complete execution.");
   }
 
-  // Check required
-  foreach($required as $require) {
-    if (empty($site_record[$require])) {
-      drush_log("  '--$require' is a required option for this command.", 'error');
-      throw new Exception("Buck could not complete execution.");
+  if ($required) {
+    // Check required
+    foreach($required as $require) {
+      if (empty($site_record[$require])) {
+        drush_log("  '--$require' is a required option for this command.", 'error');
+        throw new Exception("Buck could not complete execution.");
+      }
     }
   }
   return TRUE;
