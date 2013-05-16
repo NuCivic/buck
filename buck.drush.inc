@@ -19,9 +19,9 @@ function _buck_destroy_arg_list() {
 }
 
 /**
- * Provides args for fixperms command.
+ * Provides args for perms command.
  */
-function _buck_fixperms_arg_list() {
+function _buck_perms_arg_list() {
   return array(
     'root' => 'root',
   );
@@ -91,7 +91,7 @@ function buck_drush_command() {
     ),
     'examples' => array(
       'Simplest format' => 'drush qf --domain=example.dev',
-      'Use different codepath' => 'drush buck-fixperms --domain=example.dev --codepath=/path/to/drupal',
+      'Use different codepath' => 'drush buck-perms --domain=example.dev --codepath=/path/to/drupal',
     ),
     'aliases' => array('bf'),
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all.
@@ -159,13 +159,13 @@ function drush_buck($environment = NULL) {
 }
 
 /**
- * Drush callbackfunction for 'drush buck-fixperms'.
+ * Drush callbackfunction for 'drush buck-perms'.
  *
  * This function fixes permissions for a drupal site.
  *
  * @reurn true on success
  */
-function drush_buck_fixperms($environment = NULL) {
+function drush_buck_perms($environment = NULL) {
   $site_record = drush_sitealias_get_record('@self');
 
   $drupal_path = $site_record['root'];

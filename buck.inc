@@ -523,7 +523,7 @@ function buck_permissions_cleanup($site_record) {
   }
   $root = $site_record['root'];
   drush_log("Cleaning up permissions ...", 'ok');
-  $cmd = 'buck-fixperms';
+  $cmd = 'buck-perms';
   drush_invoke_process(
     '@self',
     $cmd,
@@ -641,7 +641,7 @@ function _buck_required_params($command) {
       'root',
       'uri',
     ),
-    'buck-fixperms' => array(
+    'buck-perms' => array(
       'root',
     ),
   );
