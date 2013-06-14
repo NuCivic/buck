@@ -102,25 +102,6 @@ drupal_fast_404();
 ");
 
 /**
- * Helper function for executing shell commands.  Throws exceptions on error.
- *
- * @param <type> $cmd the command to run
- * @param <type> $throwexception throw exception on error?
- */
-function buck_shell_exec($cmd, $throwexception = TRUE) {
-  // Note: for shell commands: 0=success, non-zero=error code
-  $ret = drush_shell_exec($cmd);
-  if ($throwexception && !$ret) {
-    $msg = "Command returned unexpected result: $cmd";
-    $output = drush_shell_exec_output();
-    foreach ($output as $line) {
-      $msg="\n  $line";
-    }
-    throw new Exception($msg);
-  }
-}
-
-/**
  * Helper function for running SQL on a local mysql database.
  *
  * @param <type> $sql
@@ -154,12 +135,12 @@ function buck_create_dns($site_record) {
   // otherwise shortened partial domains will throw an exception.
   $domainplus = " " . $site_record['uri'] . " ";
   if (!strpos($file, $domainplus)) {
-    drush_log("Creating DNS config (add $domain to /etc/hosts) ...", 'ok');
+    buck_color_log("Creating DNS config (add $domain to /etc/hosts) ...", 'ok');
     buck_shell_exec("echo '127.0.0.1 $domain #' | sudo tee -a /etc/hosts");
-    drush_log('... done.', 'ok');
+    buck_color_log('... done.', 'ok');
   }
   else {
-    drush_log("DNS config $domain already added to /etc/hosts", 'ok');
+    buck_color_log("DNS config $domain already added to /etc/hosts", 'ok');
   }
 }
 
@@ -184,7 +165,7 @@ function buck_create_webserver_config($site_record) {
 
   $str_config = BUCK_APACHE_TEMPLATE;
 
-  drush_log("Creating apache config (/etc/apache2/sites-enabled/$domain)", 'ok');
+  buck_color_log("Creating apache config (/etc/apache2/sites-enabled/$domain)", 'ok');
 
   $str_config = str_replace("#DOMAIN#", $domain, $str_config);
   $str_config = str_replace("#CODEPATH#", $site_record['root'], $str_config);
@@ -199,7 +180,7 @@ function buck_create_webserver_config($site_record) {
   // restart apache
   buck_shell_exec("sudo /usr/sbin/apachectl graceful");
 
-  drush_log('... done.', 'ok');
+  buck_color_log('... done.', 'ok');
 }
 
 /**
@@ -210,7 +191,7 @@ function buck_destroy_webserver_config($site_record) {
   buck_shell_exec("sudo a2dissite $domain", false);
   $filename = "/etc/apache2/sites-available/$domain";
   if (file_exists($filename)) unlink($filename);  // unlink = delete file
-  drush_log("Removing apache config (/etc/apache2/sites-enabled/$domain)", 'ok');
+  buck_color_log("Removing apache config (/etc/apache2/sites-enabled/$domain)", 'ok');
   buck_shell_exec("sudo /etc/init.d/apache2 restart");
 }
 
@@ -218,7 +199,7 @@ function buck_destroy_webserver_config($site_record) {
  * Destroys the database using SQL.
  */
 function buck_destroy_database($site_record) {
-  drush_log('Destroying database and user ' . $site_record['database'] . ' ...', 'ok');
+  buck_color_log('Destroying database and user ' . $site_record['database'] . ' ...', 'ok');
   // There is no sql-destroy in drush.
   drush_shell_exec('mysql -e "drop database ' . $site_record['database'] . '"');
 }
@@ -258,23 +239,23 @@ function buck_create_root($site_record) {
       return;
     }
     if (file_exists($oldpath)) {
-      drush_log("Removing existing directory $oldpath", "ok");
+      buck_color_log("Removing existing directory $oldpath", "ok");
       drush_shell_exec("rm -rf $oldpath");
-      drush_log("... done", "ok");
+      buck_color_log("... done", "ok");
     }
-    drush_log("Archiving existing directory $codepath to $tar_file", "ok");
-    buck_shell_exec("/bin/tar zcfP $tar_file $codepath");
-    drush_log("Removing existing directory $codepath", "ok");
+    buck_color_log("Archiving existing directory $codepath to $tar_file", "ok");
+    buck_shell_exec("tar zcfP $tar_file $codepath");
+    buck_color_log("Removing existing directory $codepath", "ok");
     drush_delete_dir("$codepath");
-    drush_log("... done", "ok");
-    drush_log("Creating directory $codepath", "ok");
+    buck_color_log("... done", "ok");
+    buck_color_log("Creating directory $codepath", "ok");
     drush_mkdir($site_record['base_root']);
-    drush_log("... done", "ok");
+    buck_color_log("... done", "ok");
   }
   else {
-    drush_log("Creating directory $codepath", "ok");
+    buck_color_log("Creating directory $codepath", "ok");
     drush_mkdir($site_record['base_root']);
-    drush_log("... done", "ok");
+    buck_color_log("... done", "ok");
   }
 }
 
@@ -283,9 +264,9 @@ function buck_create_root($site_record) {
  */
 function buck_destroy_root($site_record) {
   $root = $site_record['base_root'];
-  drush_log("Removing existing directory $root", "ok");
+  buck_color_log("Removing existing directory $root", "ok");
   drush_shell_exec("sudo rm -rf $root");
-  drush_log("... done", "ok");
+  buck_color_log("... done", "ok");
 }
 
 /**
@@ -295,18 +276,18 @@ function buck_git_pull($directory) {
   // TODO: Check to make sure that there are no
   // uncommitted changes etc.
   $command = 'git pull --rebase';
-  drush_shell_cd_and_exec($directory, 'git pull --rebase');
+  buck_passthru_shell_cd_and_exec($directory, 'git pull --rebase');
 }
 
 /**
  * Updates existing profile managed by git.
  */
 function buck_update_profile($site_record) {
-  drush_log("Updating profile", "ok");
+  buck_color_log("Updating profile", "ok");
   // Drush make doesn't let you pass the root directory as an arg:
   // http://drupal.org/node/1673676.
   drush_shell_cd_and_exec($site_record['root'], "drush make --contrib-destination=. --no-core --working-copy -y -v   " . $site_record['makefile']);
-  drush_log("... done", "ok");
+  buck_color_log("... done", "ok");
 }
 
 /**
@@ -343,7 +324,7 @@ function buck_sync_files($site_record) {
     array('invoke' => TRUE),
     array('interactive' => TRUE)
   );
-  drush_log("... done", "ok");
+  buck_color_log("... done", "ok");
 }
 
 /**
@@ -384,25 +365,26 @@ function buck_sync_git($site_record) {
  */
 function buck_git_update($git_dir, $git_args = NULL) {
   if (file_exists($git_dir . '/.git')) {
-    drush_log('Git repo at ' . $git_dir . '/.git already exists. Updating...', 'ok');
+    buck_color_log('Git repo at ' . $git_dir . '/.git already exists. Updating...', "ok");
     buck_git_pull($git_dir);
-    drush_log("... done", "ok");
+    buck_color_log("... done", "ok");
     return ;
   }
   $branch = isset($git_args['branch']) ? '--branch ' . $git_args['branch'] : '';
   $command = 'git clone ' . $branch . ' ' . $git_args['url'] . ' ' . $git_dir;
-  drush_log('Downloading code to ' . $git_dir . ' (takes a minute, check network activity) ...', 'ok');
+  buck_color_log('Downloading code to ' . $git_dir . ' (takes a minute, check network activity) ...', 'ok');
+  print_r($command);
   if (!system($command)) {
     return drush_set_error('DRUSH_PM_GIT_CHECKOUT_PROBLEMS', dt('Unable to clone project.'));
   }
-  drush_log("... done", "ok");
+  buck_color_log("... done", "ok");
 }
 
 /**
  * Installs site using profile.
  */
 function buck_profile_install($site_record) {
-  drush_log('Installing ' . $site_record['profile'] . ' ...', 'ok');
+  buck_color_log('Installing ' . $site_record['profile'] . ' ...', 'ok');
 
   $sql_connect = drush_invoke_process(
     '@self',
@@ -440,7 +422,7 @@ function buck_profile_install($site_record) {
     $opts,
     array('#integrate' => TRUE)
   );
-  drush_log("... done", "ok");
+  buck_color_log("... done", "ok");
 }
 
 /**
@@ -449,14 +431,14 @@ function buck_profile_install($site_record) {
 function buck_profile_make($site_record) {
   if (isset($site_record['makefile'])) {
 
-    drush_log("Downloading and installing through make file ...", 'ok');
+    buck_color_log("Downloading and installing through make file ...", 'ok');
     $make = drush_invoke_process(
       '@self',
       'make',
       array($site_record['makefile'], $site_record['root']),
       array('--prepare-install', '--working-copy')
     );
-    drush_log('... done.', 'ok');
+    buck_color_log('... done.', 'ok');
   }
 }
 
@@ -522,7 +504,7 @@ function buck_permissions_cleanup($site_record) {
     return;
   }
   $root = $site_record['root'];
-  drush_log("Cleaning up permissions ...", 'ok');
+  buck_color_log("Cleaning up permissions ...", 'ok');
   $cmd = 'buck-perms';
   drush_invoke_process(
     '@self',
@@ -531,7 +513,7 @@ function buck_permissions_cleanup($site_record) {
     array('invoke' => TRUE),
     array('dispatch-using-alias' => TRUE)
   );
-  drush_log('... done.', 'ok');
+  buck_color_log('... done.', 'ok');
 }
 
 /**
@@ -606,11 +588,11 @@ function _buck_check_params($site_record,  $required) {
   #$makefile = buck_fixpath("$makefile");
   #if (!file_exists($makefile)) throw new Exception("Makefile ". $makefile ." not found.");
   if (strlen($site_record['database']) > 15) {
-    drush_log("  '--uri' must be less than 16 characters long, for mysql user name to work.", 'error');
+    buck_color_log("  '--uri' must be less than 16 characters long, for mysql user name to work.", 'error');
     throw new Exception("Buck could not complete execution.");
   }
   elseif (strlen($site_record['database']) < 3) {
-    drush_log("  '--uri' must be at least 3 characters long.", 'error');
+    buck_color_log("  '--uri' must be at least 3 characters long.", 'error');
     throw new Exception("Buck could not complete execution.");
   }
 
@@ -618,7 +600,7 @@ function _buck_check_params($site_record,  $required) {
     // Check required
     foreach($required as $require) {
       if (empty($site_record[$require])) {
-        drush_log("  '--$require' is a required option for this command.", 'error');
+        buck_color_log("  '--$require' is a required option for this command.", 'error');
         throw new Exception("Buck could not complete execution.");
       }
     }
@@ -671,4 +653,101 @@ function _buck_env_prepare($site_record) {
   // Check that required params are inlcuded and that some params are acceptable.
   _buck_check_params($site_record, $required);
   return $site_record;
+}
+
+/**
+ * Exactly the same as drush_shell_cd_and_exec except for call to buck_passthru_shell_exec().
+ */
+function buck_passthru_shell_cd_and_exec($effective_wd, $cmd) {
+  $args = func_get_args();
+
+  $effective_wd = array_shift($args);
+  $cwd = getcwd();
+  drush_op('chdir', $effective_wd);
+  $result = call_user_func_array('buck_passthru_shell_exec', $args);
+  drush_op('chdir', $cwd);
+  return $result;
+}
+
+/**
+ * Helper function for executing shell commands.  Throws exceptions on error.
+ *
+ * @param <type> $cmd the command to run
+ * @param <type> $throwexception throw exception on error?
+ */
+function buck_shell_exec($cmd, $throwexception = TRUE) {
+  // Note: for shell commands: 0=success, non-zero=error code
+  $ret = drush_shell_exec($cmd);
+  if ($throwexception && !$ret) {
+    $msg = "Command returned unexpected result: $cmd";
+    $output = drush_shell_exec_output();
+    foreach ($output as $line) {
+      $msg="\n  $line";
+    }
+    throw new Exception($msg);
+  }
+}
+
+/**
+ * Exactly the same as drush_shell_exec except for call to _buck_passthru_shell_exec().
+ */
+function buck_passthru_shell_exec($cmd) {
+  return _buck_passthru_shell_exec(func_get_args());
+}
+
+/**
+ * Same as _drush_shell_exec() except calls to passthru() instead of exec();
+ * Want the option of letting user know what is going on.
+ */
+function _buck_passthru_shell_exec($args, $interactive = FALSE) {
+  // Do not change the command itself, just the parameters.
+  for ($x = 1; $x < sizeof($args); $x++) {
+    $args[$x] = drush_escapeshellarg($args[$x]);
+  }
+  // Important: we allow $args to take one of two forms here.  If
+  // there is only one item in the array, it is the already-escaped
+  // command string, but otherwise sprintf is used.  In the case
+  // of pre-escaped strings, sprintf will fail if any of the escaped
+  // parameters contain '%', so we must not call sprintf unless necessary.
+  if (count($args) == 1) {
+    $command = $args[0];
+  }
+  else {
+    $command = call_user_func_array('sprintf', $args);
+  }
+
+  if (drush_get_context('DRUSH_VERBOSE') || drush_get_context('DRUSH_SIMULATE')) {
+    drush_print('Executing: ' . $command, 0, STDERR);
+  }
+  if (!drush_get_context('DRUSH_SIMULATE')) {
+    if ($interactive) {
+      $result = drush_shell_proc_open($command);
+      return ($result == 0) ? TRUE : FALSE;
+    }
+    else {
+      // Only change from _drush_shell_exe(). 
+      passthru($command . ' 2>&1', $output);
+      _drush_shell_exec_output_set($output);
+
+      if (drush_get_context('DRUSH_DEBUG')) {
+        foreach ($output as $line) {
+          drush_print($line, 2);
+        }
+      }
+
+      // Exit code 0 means success.
+      return ($result == 0);
+    }
+  }
+  else {
+    return TRUE;
+  }
+}
+
+/**
+ * I like pretty colors.
+ */
+function buck_color_log($message, $type = 'notice', $error = null, $color = '33') {
+  $message = "\033[" . $color . "m" . $message . "\033[37m \n";
+  drush_log($message, $type, $error);
 }

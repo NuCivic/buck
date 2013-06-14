@@ -125,7 +125,7 @@ function drush_buck($environment = NULL) {
     }
     // This is a normal site with non-local code, database, and media files.
     elseif ($site_record['sync-source']) {
-      buck_create_root($site_record);
+      //buck_create_root($site_record);
       buck_sync_git($site_record);
       buck_sync_files($site_record);
       buck_sync_database($site_record);
@@ -149,11 +149,11 @@ function drush_buck($environment = NULL) {
 
   } catch (Exception $e) {
     $message = $e->getMessage();
-    drush_log("Command failed: $message", "error");
+    buck_color_log("Command failed: $message", "error");
     return false;
   }
 
-  drush_log("Command completed successfully.", "success");
+  buck_color_log("Command completed successfully.", "success");
 
   return TRUE;
 }
@@ -173,23 +173,23 @@ function drush_buck_perms($environment = NULL) {
   $drupal_user = exec('echo "$(whoami)"');
   $httpd_group = _drush_get_os() == 'Darwin' ? '_www' : 'www-data';
 
-  drush_log("Changing ownership of all contents of $drupal_path user => $drupal_user group => $httpd_group", 'ok');
-  buck_shell_exec("chown -R $drupal_user:$httpd_group $drupal_path");
+  buck_color_log("Changing ownership of all contents of $drupal_path user => $drupal_user group => $httpd_group", 'ok');
+  buck_shell_exec("sudo chown -R $drupal_user:$httpd_group $drupal_path");
 
-  drush_log("Changing permissions of all directories inside $drupal_path to rwxr-x--- ...", 'ok');
+  buck_color_log("Changing permissions of all directories inside $drupal_path to rwxr-x--- ...", 'ok');
   buck_shell_exec("find $drupal_path -type d -exec chmod u=rwx,g=rx,o= '{}' \;");
 
-  drush_log("Changing permissions of all files inside $drupal_path to rw-r----- ...", 'ok');
+  buck_color_log("Changing permissions of all files inside $drupal_path to rw-r----- ...", 'ok');
   buck_shell_exec("find $drupal_path -type f -exec chmod u=rw,g=r,o= '{}' \;");
 
-  drush_log("Changing permissions of \"files\" directories in $drupal_path/sites to rwxrwx--- ...", 'ok');
+  buck_color_log("Changing permissions of \"files\" directories in $drupal_path/sites to rwxrwx--- ...", 'ok');
   buck_shell_exec("find $drupal_path/sites -type d -name files -exec chmod ug=rwx,o= '{}' \;");
 
-  drush_log("Changing permissions of all files inside $files_dir to rw-rw---- ...", 'ok');
+  buck_color_log("Changing permissions of all files inside $files_dir to rw-rw---- ...", 'ok');
   buck_shell_exec("find $files_dir -type d -exec chmod ug=rwx,o= '{}' \;");
 
   // TODO: add support for private files.
-  drush_log("Changing permissions of all directories inside $files_dir to rwxrwx--- ..", 'ok');
+  buck_color_log("Changing permissions of all directories inside $files_dir to rwxrwx--- ..", 'ok');
   buck_shell_exec("find $files_dir -type f -exec chmod ug=rw,o= '{}' \;");
 
   return TRUE;
@@ -215,11 +215,11 @@ function drush_buck_destroy($site_record = array()) {
     buck_destroy_root($site_record);
   } catch (Exception $e) {
     $message = $e->getMessage();
-    drush_log("Command failed: $message", "error");
+    buck_color_log("Command failed: $message", "error");
     return false;
   }
 
-  drush_log("Command completed successfully.", "success");
+  buck_color_log("Command completed successfully.", "success");
   return true;
 }
 
@@ -240,10 +240,10 @@ function drush_buck_sql($site_record = array()) {
     buck_sync_database($site_record);
   } catch (Exception $e) {
     $message = $e->getMessage();
-    drush_log("Command failed: $message", "error");
+    buck_color_log("Command failed: $message", "error");
     return false;
   }
 
-  drush_log("Command completed successfully.", "success");
+  buck_color_log("Command completed successfully.", "success");
   return true;
 }
