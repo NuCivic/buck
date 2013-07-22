@@ -286,7 +286,7 @@ function buck_update_profile($site_record) {
   buck_color_log("Updating profile", "ok");
   // Drush make doesn't let you pass the root directory as an arg:
   // http://drupal.org/node/1673676.
-  drush_shell_cd_and_exec($site_record['root'], "drush make --contrib-destination=. --no-core --working-copy -y -v   " . $site_record['makefile']);
+  drush_shell_cd_and_exec($site_record['root'], "drush make --no-gitinfofile --contrib-destination=. --no-core --working-copy -y -v   " . $site_record['makefile']);
   buck_color_log("... done", "ok");
 }
 
@@ -450,12 +450,12 @@ function buck_sync_database($site_record) {
     return;
   }
 
-  buck_create_database($site_record);
+  drush_sql_empty_db($site_record);
   drush_invoke_process(
     '@self',
     'sql-sync',
     array("@" . $site_record['sync-source'], "@" . $site_record['#name']),
-    array('--target-databsae=' . $site_record['database'],  '--db-su=' . $db_super['user'], '--db-su-pw=' . $db_super['password']),
+    array('--no-cache', '-y', ' --db-su=' . $db_super['user'], '--db-su-pw=' . $db_super['password']),
     array('interactive' => TRUE)
   );
 }
