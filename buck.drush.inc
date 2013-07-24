@@ -114,12 +114,7 @@ function drush_buck($environment = NULL) {
     buck_create_dns($site_record);
     // This is a site install from a makefile. Site is installed through make.
     if (isset($site_record['makefile'])) {
-      if (!file_exists($site_record['base_root'])) {
-        buck_profile_make($site_record);
-      }
-      else {
-        buck_update_profile($site_record);
-      }
+      buck_profile_make($site_record);
       buck_profile_install($site_record);
       buck_revert_features($site_record);
     }

@@ -432,12 +432,12 @@ function buck_profile_make($site_record) {
   if (isset($site_record['makefile'])) {
 
     buck_color_log("Downloading and installing through make file ...", 'ok');
-    $make = drush_invoke_process(
-      '@self',
-      'make',
-      array($site_record['makefile'], $site_record['root']),
-      array('--prepare-install', '--working-copy')
-    );
+
+    buck_destroy_code($site_record);
+    $temp_dir = $site_record['base_root'];//drush_tempdir();
+    buck_git_update($temp_dir, $site_record['git']);
+    buck_passthru_shell_cd_and_exec($temp_dir, 'drush make -y --prepare-install --working-copy ' . $site_record['makefile'] . ' ' . $site_record['root']);
+
     buck_color_log('... done.', 'ok');
   }
 }
@@ -520,8 +520,7 @@ function buck_permissions_cleanup($site_record) {
  * Deletes the sites files using rm -rf.  Also path.old.
  */
 function buck_destroy_code($site_record) {
-  $codepath = $site_record['base_root'];
-  buck_shell_exec("rm -rf $codepath");
+  buck_shell_exec('sudo rm -rf ' . $site_record['base_root']);
 }
 
 /**
