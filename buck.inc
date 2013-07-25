@@ -321,7 +321,6 @@ function buck_sync_files($site_record) {
     $alias,
     'rsync',
     array("@" . $site_record['sync-source'] . ":%files", "@" . $site_record['#name'] . ":%files"),
-    array('invoke' => TRUE),
     array('interactive' => TRUE)
   );
   buck_color_log("... done", "ok");
