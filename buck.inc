@@ -321,6 +321,7 @@ function buck_sync_files($site_record) {
     $alias,
     'rsync',
     array("@" . $site_record['sync-source'] . ":%files", "@" . $site_record['#name'] . ":%files"),
+    array('-y'),
     array('interactive' => TRUE)
   );
   buck_color_log("... done", "ok");
@@ -509,7 +510,7 @@ function buck_permissions_cleanup($site_record) {
     '@self',
     $cmd,
     array(),
-    array('invoke' => TRUE),
+    array(),
     array('dispatch-using-alias' => TRUE)
   );
   buck_color_log('... done.', 'ok');

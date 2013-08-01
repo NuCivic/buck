@@ -59,6 +59,9 @@ function pantheon_buck_sync_database($site_record) {
     $config_handle = fopen($site_record['root'] . "/sites/" . $site_record['uri'] . "/settings.php", "w+");
     fwrite($config_handle, $str_config);
   }
+  else {
+    drush_sql_empty_db($site_record);
+  }
 
   $tmp_dir = drush_tempdir();
   $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
