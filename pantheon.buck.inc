@@ -66,7 +66,7 @@ function pantheon_buck_sync_database($site_record) {
   $tmp_dir = drush_tempdir();
   $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
   $dump_cmd = 'drush @' . $site_record['sync-source']  . ' sql-dump > ' . $temp_file;
-  $dump_cmd = 'mysqldump -u ' . $sync_source['sync-sql-user'] . ' -p' . $sync_source['sync-sql-pass'] . ' -h dbserver.' . $sync_source['remote-user'] . '.drush.in -P ' . $sync_source['sync-sql-port']  . ' ' . $sync_source['sync-sql-db'] . ' > ' . $temp_file;
+  $dump_cmd = 'mysqldump -u ' . $sync_source['sync-sql-user'] . ' -p' . $sync_source['sync-sql-pass'] . ' -h dbserver.' . $sync_source['remote-user'] . '.drush.in -P ' . $sync_source['sync-sql-port']  . ' ' . $sync_source['sync-sql-db'] . ' --set-gtid-purged=OFF  > ' . $temp_file;
   buck_passthru_shell_exec($dump_cmd);
   $db_opt = '';
   if ($site_record['db_pass']) {
