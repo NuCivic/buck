@@ -149,6 +149,7 @@ function buck_create_dns($site_record) {
  */
 function buck_destroy_dns($site_record) {
   $domain = $site_record['uri'];
+  drush_print_r('sudo sed -i \"/ $domain .*#/d\" /etc/hosts');
   buck_shell_exec("sudo sed -i \"/ $domain .*#/d\" /etc/hosts");
 }
 
@@ -192,7 +193,7 @@ function buck_destroy_webserver_config($site_record) {
   $filename = "/etc/apache2/sites-available/$domain";
   if (file_exists($filename)) unlink($filename);  // unlink = delete file
   buck_color_log("Removing apache config (/etc/apache2/sites-enabled/$domain)", 'ok');
-  buck_shell_exec("sudo /etc/init.d/apache2 restart");
+  buck_shell_exec("sudo apachectl graceful");
 }
 
 /**
@@ -449,15 +450,27 @@ function buck_sync_database($site_record) {
   if (buck_host_include($site_record, __FUNCTION__)) {
     return;
   }
+  if ($site_record['sql-dump']) {
+    buck_color_log("Grabbing the database ...", 'ok');
+    $tmp_file_name = '/tmp/' . $site_record['database'] . "-" . time() . ".sql";
+    $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
+    buck_shell_exec('/usr/bin/ssh -tq ' . $sync_source['remote-user'] . '@' . $sync_source['remote-host'] . ' "mysqldump ' . str_replace(array('.', '-'), '_', $sync_source['#name']) . '" > ' . $tmp_file_name);
 
-  drush_sql_empty_db($site_record);
-  drush_invoke_process(
-    '@self',
-    'sql-sync',
-    array("@" . $site_record['sync-source'], "@" . $site_record['#name']),
-    array('--no-cache', '-y', ' --db-su=' . $db_super['user'], '--db-su-pw=' . $db_super['password']),
-    array('interactive' => TRUE)
-  );
+    drush_sql_empty_db($site_record);
+    buck_shell_exec('mysql ' . $site_record['database'] . ' < ' . $tmp_file_name);
+    buck_color_log('... done.', 'ok');
+  }
+  else {
+
+    drush_sql_empty_db($site_record);
+    drush_invoke_process(
+      '@self',
+      'sql-sync',
+      array("@" . $site_record['sync-source'], "@" . $site_record['#name']),
+      array('--no-cache', '-y', ' --db-su=' . $db_super['user'], '--db-su-pw=' . $db_super['password']),
+      array('interactive' => TRUE)
+    );
+  }
 }
 
 /**
@@ -562,6 +575,8 @@ function _buck_default_params($site_record) {
   $defaults['site-name'] = $domain;
   $defaults['site-mail'] = 'info@'. $domain;
   $defaults['sites-subdir'] = 'default';
+  // TODO: parametize.
+  $defaults['sql-dump'] = TRUE;
   // Core defaults. Will be provided if git and profile are not specified.
   $defaults['profile'] = 'standard';
   $defaults['git'] = array(
@@ -624,6 +639,9 @@ function _buck_required_params($command) {
     ),
     'buck-perms' => array(
       'root',
+    ),
+    'buck-sql' => array(
+      'sync-source',
     ),
   );
 

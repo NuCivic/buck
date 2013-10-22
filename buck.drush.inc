@@ -77,6 +77,13 @@ function buck_drush_command() {
     'description' => "Sync a databse.",
     'aliases' => array('bsql'),
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all.
+    'options' => array(
+      'dbuser'       => 'Optional. Defaults to "root"',
+      'dbpassword'   => 'Optional. Root mysql password.  Defaults to ""',
+      'db-url'       => 'Optional.  DB url.  Defaults to "mysql://[domain]]:[domain]@localhost/[domain]" (replace . with _ in [domain])',
+      'db-prefix'    => 'Optional.  DB table prefix.  Defaults to ""',
+      'sync-source' => 'Optional.  Site that @self will sync from."',
+    ),
   );
   $items['buck-perms'] = array(
     'description' => "Fix permissions for a buck development website:
@@ -120,7 +127,7 @@ function drush_buck($environment = NULL) {
     }
     // This is a normal site with non-local code, database, and media files.
     elseif ($site_record['sync-source']) {
-      //buck_create_root($site_record);
+      buck_create_root($site_record);
       buck_sync_git($site_record);
       buck_sync_files($site_record);
       buck_sync_database($site_record);
