@@ -496,17 +496,23 @@ function buck_create_database(&$site_record) {
       array('--db-url=' . $db_url, '--db-su=' . $db_super['user'], '--db-su-pw=' . $db_super['password']),
       array('interactive' => TRUE)
     );
-
-    // Add settings.php
-    $str_config = BUCK_SETTINGS_PHP_TEMPLATE;
-    $str_config = str_replace("#DATABASE#", $site_record['database'], $str_config);
-    $str_config = str_replace("#USERNAME#", $site_record['database'], $str_config);
-    $str_config = str_replace("#PASSWORD#", $site_record['db_pass'], $str_config);
-    $str_config = str_replace("#URL#", 'http://' . $site_record['uri'], $str_config);
-
-    $config_handle = fopen($site_record['root'] . "/sites/default/settings.php", "w+");
-    fwrite($config_handle, $str_config);
+    buck_create_settings_php($site_record);
   }
+}
+
+/**
+ *
+ */
+function buck_create_settings_php($site_record) {
+  // Add settings.php
+  $str_config = BUCK_SETTINGS_PHP_TEMPLATE;
+  $str_config = str_replace("#DATABASE#", $site_record['database'], $str_config);
+  $str_config = str_replace("#USERNAME#", $site_record['database'], $str_config);
+  $str_config = str_replace("#PASSWORD#", $site_record['db_pass'], $str_config);
+  $str_config = str_replace("#URL#", 'http://' . $site_record['uri'], $str_config);
+
+  $config_handle = fopen($site_record['root'] . "/sites/default/settings.php", "w+");
+  fwrite($config_handle, $str_config);
 }
 
 /**
