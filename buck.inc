@@ -454,7 +454,7 @@ function buck_sync_database($site_record) {
     buck_color_log("Grabbing the database ...", 'ok');
     $tmp_file_name = '/tmp/' . $site_record['database'] . "-" . time() . ".sql";
     $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
-    buck_shell_exec('/usr/bin/ssh -tq ' . $sync_source['remote-user'] . '@' . $sync_source['remote-host'] . ' "mysqldump ' . str_replace(array('.', '-'), '_', $sync_source['#name']) . '" > ' . $tmp_file_name);
+    buck_shell_exec('/usr/bin/ssh -tq ' . $sync_source['remote-user'] . '@' . $sync_source['remote-host'] . ' "mysqldump ' . $sync_source['database'] . '" > ' . $tmp_file_name);
 
     drush_sql_empty_db($site_record);
     buck_shell_exec('mysql ' . $site_record['database'] . ' < ' . $tmp_file_name);
