@@ -54,12 +54,14 @@ function pantheon_buck_sync_database($site_record) {
     $str_config = str_replace("#USERNAME#", $site_record['database'], $str_config);
     $str_config = str_replace("#PASSWORD#", $site_record['db_pass'], $str_config);
     $str_config = str_replace("#URL#", 'http://' . $site_record['uri'], $str_config);
+    drush_print_r($site_record['db_pass']);
 
     drush_mkdir($site_record['root'] . "/sites/" . $site_record['uri']);
     $config_handle = fopen($site_record['root'] . "/sites/" . $site_record['uri'] . "/settings.php", "w+");
     fwrite($config_handle, $str_config);
   }
   else {
+    drush_print_r('three');
     drush_sql_empty_db($site_record);
   }
 
@@ -73,6 +75,11 @@ function pantheon_buck_sync_database($site_record) {
     $db_url = 'mysql://' . $site_record['database'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
     $db_opt = '  --db-url=' . $db_url;
   }
+  else {
+    $db_url = 'mysql://root:@localhost/' . $site_record['database'];
+    $db_opt = '  --db-url=' . $db_url;
+  }
+
   $sql_cmd = 'drush ' . '@' . $site_record['#name'] . ' sqlc < ' . $temp_file . $db_opt;
   buck_passthru_shell_exec($sql_cmd);
   buck_color_log("... done", "ok");
