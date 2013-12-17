@@ -206,6 +206,22 @@ function buck_destroy_database($site_record) {
 }
 
 /**
+ * Fires drush commands.
+ */
+function buck_command_drush($site_record) {
+  if ($site_record['drush_command']) {
+    foreach ($site_record['drush_command'] as $command => $vars) {
+      $option = isset($vars['option']) ? $vars['option'] : '';
+      drush_invoke_process(
+        '@self',
+        $command . ' ' . $vars['arg'],
+        $option
+      );
+    }
+  }
+}
+
+/**
  * Reverts selected features for site.
  */
 function buck_revert_features($site_record) {
