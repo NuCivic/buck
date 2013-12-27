@@ -242,6 +242,7 @@ function drush_buck_sql($site_record = array()) {
       return;
     }
     buck_sync_database($site_record);
+    buck_command_drush($site_record);
   } catch (Exception $e) {
     $message = $e->getMessage();
     buck_color_log("Command failed: $message", "error");

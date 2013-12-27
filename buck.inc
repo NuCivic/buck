@@ -200,7 +200,7 @@ function buck_destroy_webserver_config($site_record) {
  * Destroys the database using SQL.
  */
 function buck_destroy_database($site_record) {
-  buck_color_log('Destroying database and user ' . $site_record['database'] . ' ...', 'ok');
+  buck_color_log('Destroying database' . $site_record['database'] . ' ...', 'ok');
   // There is no sql-destroy in drush.
   drush_shell_exec('mysql -e "drop database ' . $site_record['database'] . '"');
 }
@@ -209,7 +209,7 @@ function buck_destroy_database($site_record) {
  * Fires drush commands.
  */
 function buck_command_drush($site_record) {
-  if ($site_record['drush_command']) {
+  if (isset($site_record['drush_command'])) {
     foreach ($site_record['drush_command'] as $command => $vars) {
       $option = isset($vars['option']) ? $vars['option'] : '';
       drush_invoke_process(
@@ -471,16 +471,17 @@ function buck_sync_database($site_record) {
     $tmp_file_name = '/tmp/' . $site_record['database'] . "-" . time() . ".sql";
 
     $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
-    $database = $sync_source['database'] ? $sync_source['database'] : str_replace(array('.', '-'), '_', $sync_source['#name']);
+    $database = isset($sync_source['database']) && $sync_source['database'] ? $sync_source['database'] : str_replace(array('.', '-'), '_', $sync_source['#name']);
     buck_shell_exec('/usr/bin/ssh -tq ' . $sync_source['remote-user'] . '@' . $sync_source['remote-host'] . ' "mysqldump ' . $database . '" > ' . $tmp_file_name);
 
-    drush_sql_empty_db($site_record);
+    buck_destroy_database($site_record);
+    buck_create_database($site_record);
     buck_shell_exec('mysql ' . $site_record['database'] . ' < ' . $tmp_file_name);
     buck_color_log('... done.', 'ok');
   }
   else {
-
-    drush_sql_empty_db($site_record);
+    buck_destroy_database($site_record);
+    buck_create_database($site_record);
     drush_invoke_process(
       '@self',
       'sql-sync',
@@ -496,7 +497,8 @@ function buck_sync_database($site_record) {
  */
 function buck_create_database(&$site_record) {
   // If there is no local database, need to create one and add it to settings.php
-  if (!drush_sql_db_exists($site_record) || !file_exists($site_record['root'] . '/sites/default/settings.php')) {
+  if (!drush_sql_db_exists($site_record) && !is_readable($site_record['root'] . '/sites/default/settings.php')) {
+    drush_print_r('fff');
     // Create database.
     $site_record['db_pass'] = drush_generate_password();
     $db_url = 'mysql://' . $site_record['database'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
@@ -515,6 +517,9 @@ function buck_create_database(&$site_record) {
       array('interactive' => TRUE)
     );
     buck_create_settings_php($site_record);
+  }
+  else {
+    drush_shell_exec('mysql -e "create database ' . $site_record['database'] . '"');
   }
 }
 
