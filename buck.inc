@@ -546,6 +546,7 @@ function buck_create_database(&$site_record) {
       drush_set_error("Your .my.cnf file is not setup correctly.");
       return;
     }
+    buck_create_settings_php($site_record);
     drush_invoke_process(
       '@self',
       'sql-create',
@@ -553,7 +554,6 @@ function buck_create_database(&$site_record) {
       array('--db-url=' . $db_url, '--db-su=' . $db_super['user'], '--db-su-pw=' . $db_super['password']),
       array('interactive' => TRUE)
     );
-    buck_create_settings_php($site_record);
   }
   else {
     drush_shell_exec('mysql -e "create database ' . $site_record['database'] . '"');
@@ -565,10 +565,10 @@ function buck_create_database(&$site_record) {
  */
 function buck_create_settings_php($site_record) {
   if ($site_record['multisite']) {
-    $settings_php = $site_record['root'] . '/sites/' . $site_record['uri'] . '/settings.php';
+    $folder = $site_record['root'] . '/sites/' . $site_record['uri'];
   }
   else {
-    $settings_php = $site_record['root'] . '/sites/default/settings.php';
+    $folder = $site_record['root'] . '/sites/default';
   }
   // Add settings.php
   $str_config = BUCK_SETTINGS_PHP_TEMPLATE;
@@ -576,8 +576,11 @@ function buck_create_settings_php($site_record) {
   $str_config = str_replace("#USERNAME#", $site_record['database'], $str_config);
   $str_config = str_replace("#PASSWORD#", $site_record['db_pass'], $str_config);
   $str_config = str_replace("#URL#", 'http://' . $site_record['uri'], $str_config);
+  if (!is_readable($folder)) {
+    drush_mkdir($folder);
+  }
 
-  $config_handle = fopen($settings_php, "w+");
+  $config_handle = fopen($folder . '/settings.php', "w+");
   fwrite($config_handle, $str_config);
 }
 
