@@ -29,43 +29,10 @@ function pantheon_buck_sync_database($site_record) {
   buck_color_log('Syncing database from pantheon...', 'ok');
   $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
 
-  if (!drush_sql_db_exists($site_record) || !file_exists($site_record['root'] . '/sites/' . $site_record['uri'] . '/settings.php')) {
-    // Create database.
-    $site_record['db_pass'] = drush_generate_password();
-    $db_url = 'mysql://' . $site_record['database'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
+  $site_record['multisite'] = TRUE;
+  buck_destroy_database($site_record);
+  buck_create_database($site_record);
 
-    $user = posix_getpwuid(posix_geteuid());
-    $db_super = parse_ini_file($user['dir'] . '/.my.cnf');
-    if (!$db_super['user']) {
-      drush_set_error("Your .my.cnf file is not setup correctly.");
-      return;
-    }
-    drush_invoke_process(
-      '@self',
-      'sql-create',
-      array("@" . $site_record['sync-source'], "@" . $site_record['#name']),
-      array('--db-url=' . $db_url, '--db-su=' . $db_super['user'], '--db-su-pw=' . $db_super['password']),
-      array('interactive' => TRUE)
-    );
-
-    // Add settings.php
-    $str_config = BUCK_SETTINGS_PHP_TEMPLATE;
-    $str_config = str_replace("#DATABASE#", $site_record['database'], $str_config);
-    $str_config = str_replace("#USERNAME#", $site_record['database'], $str_config);
-    $str_config = str_replace("#PASSWORD#", $site_record['db_pass'], $str_config);
-    $str_config = str_replace("#URL#", 'http://' . $site_record['uri'], $str_config);
-    drush_print_r($site_record['db_pass']);
-
-    drush_mkdir($site_record['root'] . "/sites/" . $site_record['uri']);
-    $config_handle = fopen($site_record['root'] . "/sites/" . $site_record['uri'] . "/settings.php", "w+");
-    fwrite($config_handle, $str_config);
-  }
-  else {
-    drush_print_r('three');
-    drush_sql_empty_db($site_record);
-  }
-
-  $tmp_dir = drush_tempdir();
   $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
   $dump_cmd = 'drush @' . $site_record['sync-source']  . ' sql-dump > ' . $temp_file;
   $dump_cmd = 'mysqldump -u ' . $sync_source['sync-sql-user'] . ' -p' . $sync_source['sync-sql-pass'] . ' -h dbserver.' . $sync_source['remote-user'] . '.drush.in -P ' . $sync_source['sync-sql-port']  . ' ' . $sync_source['sync-sql-db'] . '  > ' . $temp_file;

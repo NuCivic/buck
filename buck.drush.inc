@@ -130,7 +130,6 @@ function drush_buck($environment = NULL) {
       buck_create_root($site_record);
       buck_sync_git($site_record);
       buck_sync_files($site_record);
-      buck_create_database($site_record);
       buck_sync_database($site_record);
       buck_command_drush($site_record);
     }

@@ -159,7 +159,7 @@ function buck_destroy_dns($site_record) {
 function buck_create_webserver_config($site_record) {
   $domain = $site_record['uri'];
   if (file_exists("/etc/apache2/sites-available/$domain")) {
-    if (!drush_confirm(dt('Vhost ' .  $domain . ' already exists. Do you want to erase its contents?'))) {
+    if (drush_confirm(dt('Vhost ' .  $domain . ' already exists. Do you want to keep its contents?'))) {
       return;
     }
   }
@@ -200,7 +200,7 @@ function buck_destroy_webserver_config($site_record) {
  * Destroys the database using SQL.
  */
 function buck_destroy_database($site_record) {
-  buck_color_log('Destroying database' . $site_record['database'] . ' ...', 'ok');
+  buck_color_log('Destroying database ' . $site_record['database'] . ' ...', 'ok');
   // There is no sql-destroy in drush.
   drush_shell_exec('mysql -e "drop database ' . $site_record['database'] . '"');
 }
@@ -211,7 +211,7 @@ function buck_destroy_database($site_record) {
 function buck_command_drush($site_record) {
   if (isset($site_record['drush_command'])) {
     foreach ($site_record['drush_command'] as $command => $vars) {
-      $option = isset($vars['option']) ? $vars['option'] : '';
+      $option = isset($vars['option']) ? $vars['option'] : array();
       drush_invoke_process(
         '@self',
         $command . ' ' . $vars['arg'],
@@ -252,13 +252,8 @@ function buck_create_root($site_record) {
 
   // Create or make sure webroot installed.
   if (file_exists($codepath)) {
-    if (!drush_confirm(dt('Folder ' . $site_record['base_root'] . ' already exists. Do you want to remove it?'))) {
+    if (drush_confirm(dt('Folder ' . $site_record['base_root'] . ' already exists. Do you want to keep it? "No" will create archive.'))) {
       return;
-    }
-    if (file_exists($oldpath)) {
-      buck_color_log("Removing existing directory $oldpath", "ok");
-      drush_shell_exec("rm -rf $oldpath");
-      buck_color_log("... done", "ok");
     }
     buck_color_log("Archiving existing directory $codepath to $tar_file", "ok");
     buck_shell_exec("tar zcfP $tar_file $codepath");
@@ -312,7 +307,7 @@ function buck_update_profile($site_record) {
  * over execution completely if it has a function to return.
  */
 function buck_host_include($site_record, $function) {
-  if (isset($site_record['sync-host']) && function_exists($site_record['sync-host'] . '_buck_sync_files')) {
+  if (isset($site_record['sync-host']) && function_exists($site_record['sync-host'] . '_' . $function)) {
     call_user_func($site_record['sync-host'] . '_' . $function, $site_record);
     return TRUE;
   }
@@ -374,7 +369,8 @@ function buck_alias_args() {
  * Clone or pull a git repo.
  */
 function buck_sync_git($site_record) {
-  buck_git_update($site_record['root'], $site_record['git']);
+  $root = isset($site_record['base_root']) ? $site_record['base_root'] : $site_record['root'];
+  buck_git_update($root, $site_record['git']);
 }
 
 /**
@@ -474,12 +470,14 @@ function buck_sync_database($site_record) {
     $database = isset($sync_source['database']) && $sync_source['database'] ? $sync_source['database'] : str_replace(array('.', '-'), '_', $sync_source['#name']);
     buck_shell_exec('/usr/bin/ssh -tq ' . $sync_source['remote-user'] . '@' . $sync_source['remote-host'] . ' "mysqldump ' . $database . '" > ' . $tmp_file_name);
 
+    buck_archive_database($site_record);
     buck_destroy_database($site_record);
     buck_create_database($site_record);
     buck_shell_exec('mysql ' . $site_record['database'] . ' < ' . $tmp_file_name);
     buck_color_log('... done.', 'ok');
   }
   else {
+    buck_archive_database($site_record);
     buck_destroy_database($site_record);
     buck_create_database($site_record);
     drush_invoke_process(
@@ -493,12 +491,35 @@ function buck_sync_database($site_record) {
 }
 
 /**
+ * Archives database.
+ */
+function buck_archive_database($site_record) {
+  $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
+  buck_color_log("Archiving the database temporarily ...", 'ok');
+
+  drush_invoke_process(
+    '@self',
+    'sql-dump',
+    array("--result-file=" . $temp_file),
+    array("--gzip"),
+    array('interactive' => TRUE)
+  );
+
+  buck_color_log('... done.', 'ok');
+}
+
+/**
  * Creates datase and adds settings.php if they don't exist.
  */
 function buck_create_database(&$site_record) {
-  // If there is no local database, need to create one and add it to settings.php
-  if (!drush_sql_db_exists($site_record) && !is_readable($site_record['root'] . '/sites/default/settings.php')) {
-    drush_print_r('fff');
+  if ($site_record['multisite']) {
+    $setting_phps = $site_record['root'] . '/sites/' . $site_record['uri'] . '/settings.php';
+  }
+  else {
+    $setting_phps = $site_record['root'] . '/sites/default/settings.php';
+  }
+  // If there is no local db, need to create one and add it to settings.php
+  if (!drush_sql_db_exists($site_record) && !is_readable($settings_phps)) {
     // Create database.
     $site_record['db_pass'] = drush_generate_password();
     $db_url = 'mysql://' . $site_record['database'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
@@ -524,9 +545,15 @@ function buck_create_database(&$site_record) {
 }
 
 /**
- *
+ * Adds settings.php file.
  */
 function buck_create_settings_php($site_record) {
+  if ($site_record['multisite']) {
+    $settings_php = $site_record['root'] . '/sites/' . $site_record['uri'] . '/settings.php';
+  }
+  else {
+    $settings_php = $site_record['root'] . '/sites/default/settings.php';
+  }
   // Add settings.php
   $str_config = BUCK_SETTINGS_PHP_TEMPLATE;
   $str_config = str_replace("#DATABASE#", $site_record['database'], $str_config);
@@ -534,7 +561,7 @@ function buck_create_settings_php($site_record) {
   $str_config = str_replace("#PASSWORD#", $site_record['db_pass'], $str_config);
   $str_config = str_replace("#URL#", 'http://' . $site_record['uri'], $str_config);
 
-  $config_handle = fopen($site_record['root'] . "/sites/default/settings.php", "w+");
+  $config_handle = fopen($settings_php, "w+");
   fwrite($config_handle, $str_config);
 }
 
@@ -542,7 +569,7 @@ function buck_create_settings_php($site_record) {
  * Assigns proper permissions to files and settings.php.
  */
 function buck_permissions_cleanup($site_record) {
-  if (!drush_confirm(dt('Do you want to cleanup the file permissions? This may take a minute.'))) {
+  if (drush_confirm(dt('Skip file permissions check? Not necessary with directory mount on vagrant.'))) {
     return;
   }
   $root = $site_record['root'];
@@ -604,7 +631,6 @@ function _buck_default_params($site_record) {
   $defaults['site-name'] = $domain;
   $defaults['site-mail'] = 'info@'. $domain;
   $defaults['sites-subdir'] = 'default';
-  // TODO: parametize.
   $defaults['sql-dump'] = TRUE;
   // Core defaults. Will be provided if git and profile are not specified.
   $defaults['profile'] = 'standard';
@@ -612,7 +638,8 @@ function _buck_default_params($site_record) {
     'branch' => '7.x',
     'url' => 'http://git.drupal.org/project/drupal.git',
   );
-  $defaults['base_root'] =  preg_replace('/' . BUCK_WEBROOT  . '$/', '', $site_record['root']);
+  $defaults['multisite'] = FALSE;
+  $defaults['base_root'] = isset($site_record['base_root']) ? $site_record['base_root'] : $site_record['root'];
 
   // Merge it all together - 2nd array overwrites first.
   $site_record = array_merge($defaults, $site_record);
@@ -746,6 +773,7 @@ function buck_passthru_shell_exec($cmd) {
  * Want the option of letting user know what is going on.
  */
 function _buck_passthru_shell_exec($args, $interactive = FALSE) {
+  $result = FALSE;
   // Do not change the command itself, just the parameters.
   for ($x = 1; $x < sizeof($args); $x++) {
     $args[$x] = drush_escapeshellarg($args[$x]);
