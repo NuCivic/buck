@@ -206,19 +206,35 @@ function buck_destroy_database($site_record) {
 }
 
 /**
- * Fires drush commands.
+ * Prepares drush commands.
  */
 function buck_command_drush($site_record) {
   if (isset($site_record['drush_command'])) {
     foreach ($site_record['drush_command'] as $command => $vars) {
-      $option = isset($vars['option']) ? $vars['option'] : array();
-      drush_invoke_process(
-        '@self',
-        $command . ' ' . $vars['arg'],
-        $option
-      );
+      // Allow for multiple versions of the same command.
+      if (!isset($vars['arg'])) {
+        foreach ($vars as $subvars) {
+          buck_fire_command($command, $subvars);
+        }
+      }
+      else {
+        buck_fire_command($command, $vars);
+      }
     }
   }
+}
+
+/**
+ * Fires drush commands.
+ */
+function buck_fire_command($command, $vars) {
+  $option = isset($vars['option']) ? $vars['option'] : "";
+  drush_print_r($command . ' ' . $vars['arg']);
+  drush_invoke_process(
+    '@self',
+    $command . ' ' . $vars['arg'],
+    array($option)
+  );
 }
 
 /**
