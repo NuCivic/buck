@@ -535,7 +535,7 @@ function buck_create_database(&$site_record) {
     $setting_phps = $site_record['root'] . '/sites/default/settings.php';
   }
   // If there is no local db, need to create one and add it to settings.php
-  if (!drush_sql_db_exists($site_record) && !is_readable($settings_phps)) {
+  if (!buck_drush_sql_db_exists($site_record) && !is_readable($settings_phps)) {
     // Create database.
     $site_record['db_pass'] = drush_generate_password();
     $db_url = 'mysql://' . $site_record['database'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
@@ -843,4 +843,39 @@ function _buck_passthru_shell_exec($args, $interactive = FALSE) {
 function buck_color_log($message, $type = 'notice', $error = null, $color = '33') {
   $message = "\033[" . $color . "m" . $message . "\033[37m \n";
   drush_log($message, $type, $error);
+}
+
+/**
+ * Does specified database exist on target server
+ *
+ * @return boolean
+ */
+function buck_drush_sql_db_exists($db_spec) {
+  if  ($db_spec['driver'] == 'sqlite') {
+    return file_exists($db_spec['database']);
+  }
+
+  $connect_yes_db = _drush_sql_connect($db_spec);
+  $database = $db_spec['database'];
+  unset($db_spec['database']);
+  $connect_no_db = _drush_sql_connect($db_spec);
+  // We need the output back so we can't use drush_sql_query().
+  switch ($db_spec['driver']) {
+    case 'mysql':
+      $sql = "SELECT 1;";
+      // Suppress ugly output. Redirect STDERR and STDOUT. We just need exit code.
+      $bit_bucket = drush_bit_bucket();
+      return drush_shell_exec("$connect_yes_db -e \"$sql\" 2> $bit_bucket > $bit_bucket");
+    case 'pgsql':
+      $sql = "SELECT 1 AS result FROM pg_database WHERE datname='$database'";
+      drush_shell_exec("$connect_no_db -t -c \"$sql\"");
+      $output = drush_shell_exec_output();
+      return (bool)$output[0];
+    case 'sqlsrv':
+      // TODO: untested, but the gist is here.
+      $sql = "if db_id('$database') IS NOT NULL print 1";
+      drush_shell_exec("$connect_no_db -Q \"$sql\"");
+      $output = drush_shell_exec_output();
+      return $output[0] == 1;
+  }
 }
