@@ -542,7 +542,7 @@ function buck_create_database(&$site_record) {
   }
   // But with the current version of Drush, you have to do it a different way.
   else {
-    $sql = drush_sql_get_class($site_record)));
+    $sql = drush_sql_get_class($site_record);
     $db_exists = $sql->db_exists();
   }
 
