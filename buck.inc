@@ -525,7 +525,7 @@ function buck_archive_database($site_record) {
 }
 
 /**
- * Creates database and adds settings.php if they don't exist.
+ * Creates datase and adds settings.php if they don't exist.
  */
 function buck_create_database(&$site_record) {
   if ($site_record['multisite']) {
@@ -534,19 +534,8 @@ function buck_create_database(&$site_record) {
   else {
     $setting_phps = $site_record['root'] . '/sites/default/settings.php';
   }
-  // If there is no local db, need to create one and add it to settings.php.
-  // Prior to Drush 7, the drush_sql_db_exists() could be used to test for database
-  // existence.
-  if (function_exists('drush_sql_db_exists')) {
-    $db_exists = drush_sql_db_exists($site_record);
-  }
-  // But with the current version of Drush, you have to do it a different way.
-  else {
-    $sql = drush_sql_get_class($site_record);
-    $db_exists = $sql->db_exists();
-  }
-
-  if (!$db_exists && !is_readable($settings_phps)) {
+  // If there is no local db, need to create one and add it to settings.php
+  if (!buck_drush_sql_db_exists($site_record) && !is_readable($settings_phps)) {
     // Create database.
     $site_record['db_pass'] = drush_generate_password();
     $db_url = 'mysql://' . $site_record['database'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
@@ -866,10 +855,10 @@ function buck_drush_sql_db_exists($db_spec) {
     return file_exists($db_spec['database']);
   }
 
-  $connect_yes_db = _drush_sql_connect($db_spec);
+  $connect_yes_db = buck_drush_sql_connect($db_spec);
   $database = $db_spec['database'];
   unset($db_spec['database']);
-  $connect_no_db = _drush_sql_connect($db_spec);
+  $connect_no_db = buck_drush_sql_connect($db_spec);
   // We need the output back so we can't use drush_sql_query().
   switch ($db_spec['driver']) {
     case 'mysql':
@@ -889,4 +878,40 @@ function buck_drush_sql_db_exists($db_spec) {
       $output = drush_shell_exec_output();
       return $output[0] == 1;
   }
+}
+
+/**
+ * Command callback. Emits a connect string for mysql or pgsql.
+ */
+function buck_drush_sql_connect($db_spec = NULL) {
+  switch (_drush_sql_get_scheme($db_spec)) {
+    case 'mysql':
+      $command = 'mysql';
+      if (drush_get_option('A', FALSE)) {
+        $command .= ' -A';
+      }
+
+      break;
+    case 'pgsql':
+      $command = 'psql';
+      break;
+    case 'sqlite':
+      $command = 'sqlite3';
+      break;
+    case 'sqlsrv':
+      $command = 'sqlcmd';
+      break;
+    case 'oracle':
+      // use rlwrap if available for readline support
+      if ($handle = popen('rlwrap -v', 'r')) {
+        $command = 'rlwrap sqlplus';
+        pclose($handle);
+      }
+      else {
+        $command = 'sqlplus';
+      }
+      break;
+  }
+  $command .= _drush_sql_get_credentials($db_spec);
+  return $command;
 }
