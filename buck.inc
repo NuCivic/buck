@@ -846,10 +846,12 @@ function buck_color_log($message, $type = 'notice', $error = null, $color = '33'
 }
 
 /**
- * Does specified database exist on target server
+ * The following commands used to be in drush but got removed in 7.x
  *
- * @return boolean
+ * Instead of being smart and fixing that by trying to adopt their new functions
+ * we are being dumb.
  */
+
 function buck_drush_sql_db_exists($db_spec) {
   if  ($db_spec['driver'] == 'sqlite') {
     return file_exists($db_spec['database']);
@@ -880,11 +882,15 @@ function buck_drush_sql_db_exists($db_spec) {
   }
 }
 
-/**
- * Command callback. Emits a connect string for mysql or pgsql.
- */
+function buckbuck_drush_sql_get_scheme($db_spec = NULL) {
+  if (is_null($db_spec)) {
+    $db_spec = _drush_sql_get_db_spec();
+  }
+  return $db_spec['driver'];
+}
+
 function buck_drush_sql_connect($db_spec = NULL) {
-  switch (_drush_sql_get_scheme($db_spec)) {
+  switch (buckbuck_drush_sql_get_scheme($db_spec)) {
     case 'mysql':
       $command = 'mysql';
       if (drush_get_option('A', FALSE)) {
@@ -912,6 +918,101 @@ function buck_drush_sql_connect($db_spec = NULL) {
       }
       break;
   }
-  $command .= _drush_sql_get_credentials($db_spec);
+  $command .= buck_drush_sql_get_credentials($db_spec);
   return $command;
+}
+
+function buck_drush_sql_get_scheme($db_spec = NULL) {
+  if (!isset($db_spec)) {
+    $db_spec = _drush_sql_get_db_spec();
+  }
+  return $db_spec['driver'];
+}
+
+function buck_drush_sql_get_credentials($db_spec = NULL) {
+  if (!isset($db_spec)) {
+    $db_spec = _drush_sql_get_db_spec();
+  }
+
+  // Build an array of key-value pairs for the parameters.
+  $parameters = array();
+
+  switch (buck_drush_sql_get_scheme($db_spec)) {
+    case 'mysql':
+      // Some drush commands (e.g. site-install) want to connect to the
+      // server, but not the database.  Connect to the built-in database.
+      $parameters['database'] = empty($db_spec['database']) ? 'information_schema' : $db_spec['database'];
+
+      // Default to unix socket if configured.
+      if (!empty($db_spec['unix_socket'])) {
+        $parameters['socket'] = $db_spec['unix_socket'];
+      }
+      // EMPTY host is not the same as NO host, and is valid (see unix_socket).
+      elseif (isset($db_spec['host'])) {
+        $parameters['host'] = $db_spec['host'];
+      }
+
+      if (!empty($db_spec['port'])) {
+        $parameters['port'] = $db_spec['port'];
+      }
+
+      // User is required. Drupal calls it 'username'. MySQL calls it 'user'.
+      $parameters['user'] = $db_spec['username'];
+
+      // EMPTY password is not the same as NO password, and is valid.
+      if (isset($db_spec['password'])) {
+        $parameters['password'] = $db_spec['password'];
+      }
+      break;
+
+    case 'pgsql':
+      // Some drush commands (e.g. site-install) want to connect to the
+      // server, but not the database.  Connect to the built-in database.
+      $parameters['dbname'] = empty($db_spec['database']) ? 'template1' : $db_spec['database'];
+
+      // Host and port are optional but have defaults.
+      $parameters['host'] = empty($db_spec['host']) ? 'localhost' : $db_spec['host'];
+      $parameters['port'] = empty($db_spec['port']) ? '5432' : $db_spec['port'];
+
+      // Username is required.
+      $parameters['username'] = $db_spec['username'];
+
+      // Don't set the password.
+      // @see http://drupal.org/node/438828
+      break;
+
+    case 'sqlite':
+      // SQLite doesn't do user management, instead relying on the filesystem
+      // for that. So the only info we really need is the path to the database
+      // file, and not as a "--key=value" parameter.
+      return ' '  .  $db_spec['database'];
+      break;
+
+    case 'sqlsrv':
+      // Some drush commands (e.g. site-install) want to connect to the
+      // server, but not the database.  Connect to the built-in database.
+      $database = empty($db_spec['database']) ? 'master' : $db_spec['database'];
+      // Host and port are optional but have defaults.
+      $host = empty($db_spec['host']) ? '.\SQLEXPRESS' : $db_spec['host'];
+      return ' -S ' . $host . ' -d ' . $database . ' -U ' . $db_spec['username'] . ' -P ' . $db_spec['password'];
+      break;
+
+
+    case 'oracle':
+      // Return an Oracle connection string
+      return ' ' . $db_spec['username'] .'/' . $db_spec['password'] . ($db_spec['host']=='USETNS' ? '@' . $db_spec['database'] : '@//' . $db_spec['host'] . ':' . ($db_spec['port'] ? $db_spec['port'] : '1521') . '/' . $db_spec['database']);
+      break;
+
+  }
+
+  // Turn each parameter into a valid parameter string.
+  $parameter_strings = array();
+  foreach ($parameters as $key => $value) {
+    // Only escape the values, not the keys or the rest of the string.
+    $value = drush_escapeshellarg($value);
+    $parameter_strings[] = "--$key=$value";
+  }
+
+  // Join the parameters and return.
+  return ' ' . implode(' ', $parameter_strings);
 }
