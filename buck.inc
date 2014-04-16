@@ -558,6 +558,8 @@ function buck_create_database(&$site_record) {
   else {
     drush_shell_exec('mysql -e "create database ' . $site_record['database'] . '"');
   }
+  drush_shell_exec('mysql -e "grant usage on *.* to ' . $site_record['database'] . '@localhost identified by ' . "'" . $site_record['db_pass'] . "'" . '"');
+  drush_shell_exec('mysql -e "grant all privileges on ' . $site_record['database'] . '.* to ' . $site_record['database'] . '@localhost"');
 }
 
 /**

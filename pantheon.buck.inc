@@ -32,8 +32,6 @@ function pantheon_buck_sync_database($site_record) {
   $site_record['multisite'] = TRUE;
   buck_destroy_database($site_record);
   buck_create_database($site_record);
-  drush_shell_exec('mysql -e "grant usage on *.* to ' . $site_record['database'] . '@localhost identified by ' . "'" . $site_record['db_pass'] . "'" . '"');
-  drush_shell_exec('mysql -e "grant all privileges on ' . $site_record['database'] . '.* to ' . $site_record['database'] . '@localhost"');
 
   $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
   $dump_cmd = 'drush @' . $site_record['sync-source']  . ' sql-dump > ' . $temp_file;
