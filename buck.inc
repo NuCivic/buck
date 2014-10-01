@@ -415,6 +415,7 @@ function buck_git_update($git_dir, $git_args = NULL) {
 function buck_profile_install($site_record) {
   buck_color_log('Installing ' . $site_record['profile'] . ' ...', 'ok');
 
+  drush_op('chdir', $site_record['root']);
   $sql_connect = drush_invoke_process(
     '@self',
     'sql-connect'
@@ -463,7 +464,7 @@ function buck_profile_make($site_record) {
     buck_color_log("Downloading and installing through make file ...", 'ok');
 
     buck_destroy_code($site_record);
-    $temp_dir = $site_record['base_root'];//drush_tempdir();
+    $temp_dir = drush_tempdir();
     buck_git_update($temp_dir, $site_record['git']);
     buck_passthru_shell_cd_and_exec($temp_dir, 'drush make -y --prepare-install --working-copy ' . $site_record['makefile'] . ' ' . $site_record['root']);
 
@@ -634,7 +635,12 @@ function buck_generate_password($length = 10) {
  */
 function _buck_default_params($site_record) {
   $domain = str_replace('/', '', $site_record['uri']);
-  $database = $site_record['#name'] != '@self' ? str_replace(array('.', '-'), '_', $site_record['#name']) : str_replace(array('.', '-'), '_', $domain);
+  if ($site_record['db-name']) {
+    $database = $site_record['db-name'];
+  }
+  else {
+    $database = $site_record['#name'] != '@self' ? str_replace(array('.', '-'), '_', $site_record['#name']) : str_replace(array('.', '-'), '_', $domain);
+  }
   // These are defaults. They are overwritten if values are already present.
   $defaults['username'] = 'root';
   $defaults['dbpassword'] = '';
@@ -644,7 +650,7 @@ function _buck_default_params($site_record) {
   $defaults['db-prefix'] = '';
   $defaults['account-name'] = 'admin';
   $defaults['account-pass'] = 'admin';
-  $defaults['account-mail'] = 'admin@'. $domain;
+  $defaults['account-mail'] = 'admin@' . $domain;
   $defaults['locale'] = 'en';
   $defaults['clean-url'] = '1';
   $defaults['driver'] = 'mysql';
@@ -665,6 +671,10 @@ function _buck_default_params($site_record) {
   // Merge it all together - 2nd array overwrites first.
   $site_record = array_merge($defaults, $site_record);
 
+  if ($site_record['branch']) {
+    $site_record['git']['branch'] = $site_record['branch'];
+  }
+
   // This will be blank unless added to alias.
   $site_record['db-url'] = isset($site_record['db-url']) ? $site_record['db-url'] : 'mysql://' . $site_record['dbuser'] . ':' . $site_record['dbpassword'] . '@localhost/' . $site_record['database'];
   // It might be better to drush_set_option() than return.
@@ -674,7 +684,7 @@ function _buck_default_params($site_record) {
 /**
  * Checks site alias against required and verifies several elements.
  */
-function _buck_check_params($site_record,  $required) {
+function _buck_check_params($site_record, $required) {
   // TODO: makefile url and path.
   #$makefile = buck_fixpath("$makefile");
   #if (!file_exists($makefile)) throw new Exception("Makefile ". $makefile ." not found.");
@@ -820,7 +830,7 @@ function _buck_passthru_shell_exec($args, $interactive = FALSE) {
       return ($result == 0) ? TRUE : FALSE;
     }
     else {
-      // Only change from _drush_shell_exe(). 
+      // Only change from _drush_shell_exe().
       passthru($command . ' 2>&1', $output);
       _drush_shell_exec_output_set($output);
 

@@ -39,12 +39,14 @@ function buck_drush_command() {
       'uri'       => 'Required.  Domain name of new site.',
       'root'     => ' Required.  Path to drupal code."',
       'git' => 'Optional. Array consisting of "url" and "branch". Defaults to Drupal Core 7.x. Ie if you do not specify you will download Drupal Core.',
+      'branch' => 'Optional. Overrides git branch',
       'makefile' => 'Optional. URL of make file.',
       'profile'      => 'Optional.  Name of profile to install.  Defaults "standard".',
       'dbuser'       => 'Optional. Defaults to "root"',
       'dbpassword'   => 'Optional. Root mysql password.  Defaults to ""',
       'makefile'     => 'Optional.  Path to drupal make file."',
       'db-url'       => 'Optional.  DB url.  Defaults to "mysql://[domain]]:[domain]@localhost/[domain]" (replace . with _ in [domain])',
+      'db-name'      => 'Optoina.   DB name.',
       'db-prefix'    => 'Optional.  DB table prefix.  Defaults to ""',
       'account-name' => 'Optional.  Name of user 1.  Defaults to "admin"',
       'account-pass' => 'Optional.  Password user 1.  Defaults to "admin"',
@@ -71,12 +73,12 @@ function buck_drush_command() {
   $items['buck-destroy'] = array(
     'description' => "Destroy a buck development website.",
     'aliases' => array('bd'),
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all.
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
   );
   $items['buck-sql'] = array(
     'description' => "Sync a databse.",
     'aliases' => array('bsql'),
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all.
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
     'options' => array(
       'dbuser'       => 'Optional. Defaults to "root"',
       'dbpassword'   => 'Optional. Root mysql password.  Defaults to ""',
@@ -101,17 +103,18 @@ function buck_drush_command() {
       'Use different codepath' => 'drush buck-perms --domain=example.dev --codepath=/path/to/drupal',
     ),
     'aliases' => array('bf'),
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all.
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
   );
   return $items;
 }
 
 /**
- * Drush callbackfunction for 'drush buck'.
+ * Drush callback function for 'drush buck'.
  *
  * This function goes step-by-step in creating or updating the new site.
  *
- * @return true on success
+ * @return bool
+ *   TRUE if successful.
  */
 function drush_buck($environment = NULL) {
   $site_record = drush_sitealias_get_record('@self');
