@@ -136,7 +136,7 @@ function buck_create_dns($site_record) {
   $domainplus = " " . $site_record['uri'] . " ";
   if (!strpos($file, $domainplus)) {
     buck_color_log("Creating DNS config (add $domain to /etc/hosts) ...", 'ok');
-    buck_shell_exec("echo '127.0.0.1 $domain #' | sudo tee -a /etc/hosts");
+    buck_shell_exec("echo '127.0.0.1 $domain #' | sudo /usr/bin/tee -a /etc/hosts");
     buck_color_log('... done.', 'ok');
   }
   else {
@@ -466,7 +466,7 @@ function buck_profile_make($site_record) {
     buck_destroy_code($site_record);
     $temp_dir = drush_tempdir();
     buck_git_update($temp_dir, $site_record['git']);
-    buck_passthru_shell_cd_and_exec($temp_dir, 'drush make -y --prepare-install --working-copy ' . $site_record['makefile'] . ' ' . $site_record['root']);
+    buck_passthru_shell_cd_and_exec($temp_dir, 'drush make -y --no-cache --no-recursion --prepare-install --working-copy ' . $site_record['makefile'] . ' ' . $site_record['root']);
 
     buck_color_log('... done.', 'ok');
   }
