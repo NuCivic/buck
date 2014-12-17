@@ -13,6 +13,19 @@
 // accessible to the admin user but not to the web.
 define('BUCK_WEBROOT', 'webroot');
 
+define('BUCK_BUILD_MAKE_TEMPLATE', "
+api = 2
+core = 7.x
+
+includes[core] = drupal-org-core.make
+
+; Profile
+
+projects[#PROFILE#][type] = profile
+projects[#PROFILE#][download][type] = git
+projects[#PROFILE#][download][url] = #GITURL#
+projects[#PROFILE#][download][branch] = #GITBRANCH#
+");
 /**
  * This is the virtual hosts template file for the apache functions.
  */
@@ -410,6 +423,16 @@ function buck_git_update($git_dir, $git_args = NULL) {
 }
 
 /**
+ * Installs site using script.
+ */
+function buck_script_install($site_record) {
+  buck_color_log('Invoking ' . $site_record['script'] . ' ...', 'ok');
+
+  drush_op('chdir', $site_record['base_root']);
+  buck_passthru_shell_cd_and_exec($site_record['base_root'], '/bin/bash ' . $site_record['script']);
+  buck_color_log("... done", "ok");
+}
+/**
  * Installs site using profile.
  */
 function buck_profile_install($site_record) {
@@ -464,9 +487,18 @@ function buck_profile_make($site_record) {
     buck_color_log("Downloading and installing through make file ...", 'ok');
 
     buck_destroy_code($site_record);
+
     $temp_dir = drush_tempdir();
     buck_git_update($temp_dir, $site_record['git']);
-    buck_passthru_shell_cd_and_exec($temp_dir, 'drush make -y --no-cache --no-recursion --prepare-install --working-copy ' . $site_record['makefile'] . ' ' . $site_record['root']);
+
+    $str_config = BUCK_BUILD_MAKE_TEMPLATE;
+    $str_config = str_replace("#PROFILE#", $site_record['profile'], $str_config);
+    $str_config = str_replace("#GITURL#", $site_record['git']['url'], $str_config);
+    $str_config = str_replace("#GITBRANCH#", $site_record['git']['branch'], $str_config);
+
+    $config_handle = fopen($temp_dir . '/build-' . $site_record['profile'] . '.make', "w+");
+    fwrite($config_handle, $str_config);
+    buck_passthru_shell_cd_and_exec($temp_dir, 'drush make -y --no-cache --prepare-install --working-copy ' . $site_record['makefile'] . ' ' . $site_record['root']);
 
     buck_color_log('... done.', 'ok');
   }
@@ -666,6 +698,7 @@ function _buck_default_params($site_record) {
     'url' => 'http://git.drupal.org/project/drupal.git',
   );
   $defaults['multisite'] = FALSE;
+
   $defaults['base_root'] = isset($site_record['base_root']) ? $site_record['base_root'] : $site_record['root'];
 
   // Merge it all together - 2nd array overwrites first.
@@ -673,6 +706,9 @@ function _buck_default_params($site_record) {
 
   if ($site_record['branch']) {
     $site_record['git']['branch'] = $site_record['branch'];
+  }
+  if ($site_record['webroot']) {
+    $site_record['root'] = $site_record['root'] . '/' . $site_record['webroot'];
   }
 
   // This will be blank unless added to alias.
