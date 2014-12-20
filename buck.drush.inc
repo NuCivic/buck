@@ -97,6 +97,8 @@ function buck_drush_command() {
     ),
     'options' => array(
       'root' => 'Path to drupal code.  Defaults to ~/websites/[domain]',
+      'user' => 'User',
+      'group' => 'Group',
     ),
     'examples' => array(
       'Simplest format' => 'drush qf --domain=example.dev',
@@ -180,11 +182,12 @@ function drush_buck($environment = NULL) {
  */
 function drush_buck_perms($environment = NULL) {
   $site_record = drush_sitealias_get_record('@self');
+  $site_record = _buck_env_prepare($site_record);
 
   $drupal_path = $site_record['root'];
   $files_dir = $drupal_path . '/' . $site_record['path-aliases']['%files'];
-  $drupal_user = exec('echo "$(whoami)"');
-  $httpd_group = _drush_get_os() == 'Darwin' ? '_www' : 'www-data';
+  $drupal_user = isset($site_record['user']) ? $site_record['user'] : exec('echo "$(whoami)"');
+  $httpd_group = isset($site_record['group']) ? $site_record['group'] : _drush_get_os() == 'Darwin' ? '_www' : 'www-data';
 
   buck_color_log("Changing ownership of all contents of $drupal_path user => $drupal_user group => $httpd_group", 'ok');
   buck_shell_exec("sudo chown -R $drupal_user:$httpd_group $drupal_path");
