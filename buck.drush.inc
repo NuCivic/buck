@@ -118,8 +118,8 @@ function buck_drush_command() {
  * @return bool
  *   TRUE if successful.
  */
-function drush_buck($environment = NULL) {
-  $site_record = drush_sitealias_get_record('@self');
+function drush_buck($site = NULL) {
+  $site_record = drush_sitealias_get_record($site);
 
   try {
     $site_record = _buck_env_prepare($site_record);
@@ -132,9 +132,9 @@ function drush_buck($environment = NULL) {
     }
     // Site has an installation script. No code rebuild.
     elseif ($site_record['script']) {
-    //  buck_create_root($site_record);
-    //  buck_sync_git($site_record);
-    //  buck_profile_install($site_record);
+      buck_create_root($site_record);
+      buck_sync_git($site_record);
+      buck_profile_install($site_record);
       buck_script_install($site_record);
     }
     // This is a normal site with non-local code, database, and media files.

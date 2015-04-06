@@ -170,7 +170,7 @@ function buck_destroy_dns($site_record) {
  * Configure apache virtualhost file using the template.
  */
 function buck_create_webserver_config($site_record) {
-  $domain = $site_record['uri'];
+  $domain = $site_record['uri'] . '.conf';
   if (file_exists("/etc/apache2/sites-available/$domain")) {
     if (drush_confirm(dt('Vhost ' .  $domain . ' already exists. Do you want to keep its contents?'))) {
       return;
@@ -571,7 +571,7 @@ function buck_create_database(&$site_record) {
   if (!buck_drush_sql_db_exists($site_record) && !is_readable($settings_phps)) {
     // Create database.
     $site_record['db_pass'] = drush_generate_password();
-    $db_url = 'mysql://' . $site_record['database'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
+    $db_url = 'mysql://' . $site_record['dbuser'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
 
     $user = posix_getpwuid(posix_geteuid());
     $db_super = parse_ini_file($user['dir'] . '/.my.cnf');
@@ -666,6 +666,18 @@ function buck_generate_password($length = 10) {
  * Adds defaultis and configures several alias elements.
  */
 function _buck_default_params($site_record) {
+  if ($site_record['#group'] == 'pantheon') {
+    $site_record['sync-source'] = '@' . $site_record['#name'];
+    $site_record['sync-host'] = 'pantheon';
+    $site = explode(".", $site_record['#name']);
+    $site_record['root'] = '/var/www/' . $site[1];
+    $site_record['dbuser'] = str_replace(array('.', '-'), '_', substr($site_record['#name'], 0, 15));
+    $site_record['uri'] = $site[1] . '.local';
+    $site_record['git'] = array(
+      'branch' => 'master',
+      'url' => 'ssh://codeserver.' . $site_record['remote_user'] . '@codeserver.' . $site_record['remote_user'] . '.drush.in:2222/~/repository.git',
+    );
+  }
   $domain = str_replace('/', '', $site_record['uri']);
   if ($site_record['db-name']) {
     $database = $site_record['db-name'];
@@ -724,7 +736,7 @@ function _buck_check_params($site_record, $required) {
   // TODO: makefile url and path.
   #$makefile = buck_fixpath("$makefile");
   #if (!file_exists($makefile)) throw new Exception("Makefile ". $makefile ." not found.");
-  if (strlen($site_record['database']) > 15) {
+  if (strlen($site_record['database']) > 63) {
     buck_color_log("  '--uri' must be less than 16 characters long, for mysql user name to work.", 'error');
     throw new Exception("Buck could not complete execution.");
   }

@@ -16,8 +16,7 @@ function pantheon_buck_sync_files($site_record) {
   if (!file_exists($files_dir)) {
     drush_mkdir($files_dir);
   }
-  $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
-  $cmd = '/usr/bin/rsync -av --ipv4 --progress -e \'ssh -p 2222\' ' . $sync_source['remote-user'] . '@' . $sync_source['remote-host'] . ':files/ ' . $site_record['root'] . '/' . $site_record['path-aliases']['%files'] . '/';
+  $cmd = '/usr/bin/rsync -av --ipv4 --progress -e \'ssh -p 2222\' ' . $site_record['remote-user'] . '@' . $site_record['remote-host'] . ':files/ ' . $site_record['root'] . '/' . $site_record['path-aliases']['%files'] . '/';
   buck_passthru_shell_exec($cmd);
   buck_color_log("... done", "ok");
 }
@@ -34,20 +33,12 @@ function pantheon_buck_sync_database($site_record) {
   buck_create_database($site_record);
 
   $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
-  $dump_cmd = 'drush @' . $site_record['sync-source']  . ' sql-dump > ' . $temp_file;
-  $dump_cmd = 'mysqldump -u ' . $sync_source['sync-sql-user'] . ' -p' . $sync_source['sync-sql-pass'] . ' -h dbserver.' . $sync_source['remote-user'] . '.drush.in -P ' . $sync_source['sync-sql-port']  . ' ' . $sync_source['sync-sql-db'] . '  > ' . $temp_file;
-  buck_passthru_shell_exec($dump_cmd);
-  $db_opt = '';
-  if ($site_record['db_pass']) {
-    $db_url = 'mysql://' . $site_record['database'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
-    $db_opt = '  --db-url=' . $db_url;
-  }
-  else {
-    $db_url = 'mysql://root:@localhost/' . $site_record['database'];
-    $db_opt = '  --db-url=' . $db_url;
-  }
 
-  $sql_cmd = 'drush ' . '@' . $site_record['#name'] . ' sqlc < ' . $temp_file . $db_opt;
+  $dump_cmd = 'drush ' . $site_record['sync-source']  . ' sql-dump > ' . $temp_file;
+  $sql_cmd = 'mysql ' . $site_record['database'] . ' < ' . $temp_file;
+  buck_color_log('Dumping database from pantheon to ' . $tmp_file  . ' ...', 'ok');
+  buck_passthru_shell_exec($dump_cmd);
+  buck_color_log('Importing database ...', 'ok');
   buck_passthru_shell_exec($sql_cmd);
   buck_color_log("... done", "ok");
 }
