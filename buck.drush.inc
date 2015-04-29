@@ -119,7 +119,7 @@ function buck_drush_command() {
  *   TRUE if successful.
  */
 function drush_buck($site = NULL) {
-  $site_record = drush_sitealias_get_record($site);
+  $site_record = drush_sitealias_get_record($site) ? drush_sitealias_get_record($site) : drush_sitealias_get_record('@self');
 
   try {
     $site_record = _buck_env_prepare($site_record);

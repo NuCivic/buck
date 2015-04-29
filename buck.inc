@@ -678,6 +678,9 @@ function _buck_default_params($site_record) {
       'url' => 'ssh://codeserver.' . $site_record['remote_user'] . '@codeserver.' . $site_record['remote_user'] . '.drush.in:2222/~/repository.git',
     );
   }
+  elseif (isset($site_record['ac-site'])) {
+    $site_record['uri'] =  $site_record['ac-site'] . '.local';
+  }
   $domain = str_replace('/', '', $site_record['uri']);
   if ($site_record['db-name']) {
     $database = $site_record['db-name'];
