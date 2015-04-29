@@ -225,14 +225,7 @@ function buck_command_drush($site_record) {
   if (isset($site_record['drush_command'])) {
     foreach ($site_record['drush_command'] as $command => $vars) {
       // Allow for multiple versions of the same command.
-      if (!isset($vars['arg'])) {
-        foreach ($vars as $subvars) {
-          buck_fire_command($command, $subvars);
-        }
-      }
-      else {
-        buck_fire_command($command, $vars);
-      }
+      buck_fire_drush_command($site_record, $command, $vars);
     }
   }
 }
@@ -240,12 +233,13 @@ function buck_command_drush($site_record) {
 /**
  * Fires drush commands.
  */
-function buck_fire_command($command, $vars) {
+function buck_fire_drush_command($site_record, $command, $vars) {
   $option = isset($vars['option']) ? $vars['option'] : "";
-  drush_print_r($command . ' ' . $vars['arg']);
+  drush_print_r($command . ' ' . $vars);
+  $alias = drush_sitealias_get_record('@self');
   drush_invoke_process(
-    '@self',
-    $command . ' ' . $vars['arg'],
+    $site_record,
+    $command . ' ' . $vars,
     array($option)
   );
 }
@@ -349,7 +343,8 @@ function buck_sync_files($site_record) {
   if (buck_host_include($site_record, __FUNCTION__)) {
     return;
   }
-  $files_dir = $site_record['root'] . '/' . $site_record['path-aliases']['%files'];
+  $files_dir = isset($site_record['path-aliases']['%files']) ? $site_record['path-aliases']['%files'] : 'sites/default/files';
+  $files_dir = $site_record['root'] . '/' . $files_dir;
   // Make sure we have something to rsync into.
   if (!file_exists($files_dir)) {
     drush_mkdir($files_dir);
@@ -361,8 +356,8 @@ function buck_sync_files($site_record) {
   drush_invoke_process(
     $alias,
     'rsync',
-    array("@" . $site_record['sync-source'] . ":%files", "@" . $site_record['#name'] . ":%files"),
-    array('-y'),
+    array("@" . $site_record['sync-source'] . ":%files" . '/', $files_dir),
+    array('-y', '-v'),
     array('interactive' => TRUE)
   );
   buck_color_log("... done", "ok");
@@ -570,8 +565,6 @@ function buck_create_database(&$site_record) {
   // If there is no local db, need to create one and add it to settings.php
   if (!buck_drush_sql_db_exists($site_record) && !is_readable($settings_phps)) {
     // Create database.
-    $site_record['db_pass'] = drush_generate_password();
-    $db_url = 'mysql://' . $site_record['dbuser'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
 
     $user = posix_getpwuid(posix_geteuid());
     $db_super = parse_ini_file($user['dir'] . '/.my.cnf');
@@ -579,6 +572,11 @@ function buck_create_database(&$site_record) {
       drush_set_error("Your .my.cnf file is not setup correctly.");
       return;
     }
+    else {
+      $site_record['dbuser'] = $db_super['user'];
+      $site_record['db_pass'] = $db_super['password'];
+    }
+    $db_url = 'mysql://' . $site_record['dbuser'] . ':' . $site_record['db_pass']  . '@localhost/' . $site_record['database'];
     buck_create_settings_php($site_record);
     drush_invoke_process(
       '@self',
@@ -666,7 +664,7 @@ function buck_generate_password($length = 10) {
  * Adds defaultis and configures several alias elements.
  */
 function _buck_default_params($site_record) {
-  if ($site_record['#group'] == 'pantheon') {
+  if ($site_record['sync-host'] == 'pantheon') {
     $site_record['sync-source'] = '@' . $site_record['#name'];
     $site_record['sync-host'] = 'pantheon';
     $site = explode(".", $site_record['#name']);
@@ -678,8 +676,8 @@ function _buck_default_params($site_record) {
       'url' => 'ssh://codeserver.' . $site_record['remote_user'] . '@codeserver.' . $site_record['remote_user'] . '.drush.in:2222/~/repository.git',
     );
   }
-  elseif (isset($site_record['ac-site'])) {
-    $site_record['uri'] =  $site_record['ac-site'] . '.local';
+  elseif ($site_record['sync-host'] == 'acquia') {
+    $site_record['base_root'] = str_replace('/docroot', '', $site_record['root']);
   }
   $domain = str_replace('/', '', $site_record['uri']);
   if ($site_record['db-name']) {
@@ -692,7 +690,7 @@ function _buck_default_params($site_record) {
   $defaults['username'] = 'root';
   $defaults['dbpassword'] = '';
   $defaults['database'] = $database;
-  $defaults['dbuser'] = $database;
+  $defaults['dbuser'] = str_replace(array('.', '-'), '_', substr($database, 0, 15));
   $defaults['profile'] = 'standard';
   $defaults['db-prefix'] = '';
   $defaults['account-name'] = 'admin';
