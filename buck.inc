@@ -170,9 +170,9 @@ function buck_destroy_dns($site_record) {
  * Configure apache virtualhost file using the template.
  */
 function buck_create_webserver_config($site_record) {
-  $domain = $site_record['uri'] . '.conf';
-  if (file_exists("/etc/apache2/sites-available/$domain")) {
-    if (drush_confirm(dt('Vhost ' .  $domain . ' already exists. Do you want to keep its contents?'))) {
+  $domain_conf = $site_record['uri'] . '.conf';
+  if (file_exists("/etc/apache2/sites-available/$domain_conf")) {
+    if (drush_confirm(dt('Vhost ' .  $domain_conf . ' already exists. Do you want to keep its contents?'))) {
       return;
     }
   }
@@ -184,11 +184,11 @@ function buck_create_webserver_config($site_record) {
   $str_config = str_replace("#DOMAIN#", $domain, $str_config);
   $str_config = str_replace("#CODEPATH#", $site_record['root'], $str_config);
 
-  $config_handle = fopen("/etc/apache2/sites-available/$domain", "w+");
+  $config_handle = fopen("/etc/apache2/sites-available/$domain_conf", "w+");
   fwrite($config_handle, $str_config);
 
   if ($site_record['os'] == 'Linux') {
-    buck_shell_exec("sudo a2ensite $domain");
+    buck_shell_exec("sudo a2ensite $domain_conf");
   }
 
   // restart apache
@@ -606,7 +606,7 @@ function buck_create_settings_php($site_record) {
   // Add settings.php
   $str_config = BUCK_SETTINGS_PHP_TEMPLATE;
   $str_config = str_replace("#DATABASE#", $site_record['database'], $str_config);
-  $str_config = str_replace("#USERNAME#", $site_record['database'], $str_config);
+  $str_config = str_replace("#USERNAME#", $site_record['dbuser'], $str_config);
   $str_config = str_replace("#PASSWORD#", $site_record['db_pass'], $str_config);
   $str_config = str_replace("#URL#", 'http://' . $site_record['uri'], $str_config);
   if (!is_readable($folder)) {
