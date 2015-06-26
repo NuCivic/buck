@@ -181,7 +181,7 @@ function buck_create_webserver_config($site_record) {
 
   buck_color_log("Creating apache config (/etc/apache2/sites-enabled/$domain)", 'ok');
 
-  $str_config = str_replace("#DOMAIN#", $domain, $str_config);
+  $str_config = str_replace("#DOMAIN#", $site_record['uri'], $str_config);
   $str_config = str_replace("#CODEPATH#", $site_record['root'], $str_config);
 
   $config_handle = fopen("/etc/apache2/sites-available/$domain", "w+");
@@ -439,10 +439,6 @@ function buck_profile_install($site_record) {
   buck_color_log('Installing ' . $site_record['profile'] . ' ...', 'ok');
 
   drush_op('chdir', $site_record['root']);
-  $sql_connect = drush_invoke_process(
-    '@self',
-    'sql-connect'
-  );
   $user = posix_getpwuid(posix_geteuid());
   if (!$site_record['db-su']) {
     $db_super = parse_ini_file($user['dir'] . '/.my.cnf');
@@ -464,10 +460,7 @@ function buck_profile_install($site_record) {
   );
   // Supply db credentials if we can't connect. Output string will be
   // empty spaces hence strlen.
-  if (strlen($sql_connect['output']) < 5) {
-    $db_pass = drush_generate_password();
-    $opts[] = '--db-url=mysql://' . $site_record['dbuser'] . ':' . $db_pass . '@localhost/' . $site_record['database'];
-  }
+  $opts[] = '--db-url=mysql://' . $site_record['db-su'] . ':' . $site_record['db-su-pw'] . '@localhost/' . $site_record['database'];
   drush_invoke_process(
     '@self',
     'site-install',
