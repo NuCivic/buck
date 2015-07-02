@@ -187,9 +187,7 @@ function buck_create_webserver_config($site_record) {
   $config_handle = fopen("/etc/apache2/sites-available/$domain", "w+");
   fwrite($config_handle, $str_config);
 
-  if ($site_record['os'] == 'Linux') {
-    buck_shell_exec("sudo a2ensite $domain");
-  }
+  buck_shell_exec("sudo a2ensite $domain");
 
   // restart apache
   buck_shell_exec("sudo /usr/sbin/apachectl graceful");
@@ -725,7 +723,7 @@ function _buck_default_params($site_record) {
 /**
  * Checks site alias against required and verifies several elements.
  */
-function _buck_check_params($site_record, $required) {
+function _buck_check_params($site_record, $required, $buck_command) {
   // TODO: makefile url and path.
   #$makefile = buck_fixpath("$makefile");
   #if (!file_exists($makefile)) throw new Exception("Makefile ". $makefile ." not found.");
@@ -733,7 +731,7 @@ function _buck_check_params($site_record, $required) {
     buck_color_log("  '--uri' must be less than 16 characters long, for mysql user name to work.", 'error');
     throw new Exception("Buck could not complete execution.");
   }
-  elseif (strlen($site_record['database']) < 3) {
+  elseif ($buck_command != "buck-perms" && strlen($site_record['database']) < 3) {
     buck_color_log("  '--uri' must be at least 3 characters long.", 'error');
     throw new Exception("Buck could not complete execution.");
   }
@@ -796,7 +794,7 @@ function _buck_env_prepare($site_record) {
   $required = _buck_required_params($buck_command);
 
   // Check that required params are inlcuded and that some params are acceptable.
-  _buck_check_params($site_record, $required);
+  _buck_check_params($site_record, $required, $buck_command);
   return $site_record;
 }
 
