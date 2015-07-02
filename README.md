@@ -3,6 +3,17 @@ This is a Drush extension that creates local sites from variables in drush alias
 This is a simple as posssible wrapper around Drush commands with a few add-ons. It works only on Ubuntu. Though that is being expanded. For something
 more feature-rich and extensible see: http://drupal.org/project/fetcher
 
+# Install
+
+Easiest way to install is to clone this repo inside `~/.drush`
+
+```
+cd ~/.drush
+git clone git@github.com:NuCivic/buck.git
+cd buck
+composer install
+```
+
 # Commands
 
 ### Create or update site:

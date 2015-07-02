@@ -13,106 +13,9 @@
 // accessible to the admin user but not to the web.
 define('BUCK_WEBROOT', 'webroot');
 
-define('BUCK_BUILD_MAKE_TEMPLATE', "
-api = 2
-core = 7.x
-
-includes[core] = drupal-org-core.make
-
-; Profile
-
-projects[#PROFILE#][type] = profile
-projects[#PROFILE#][download][type] = git
-projects[#PROFILE#][download][url] = #GITURL#
-projects[#PROFILE#][download][branch] = #GITBRANCH#
-");
-/**
- * This is the virtual hosts template file for the apache functions.
- */
-define('BUCK_APACHE_TEMPLATE', "
-<Directory #CODEPATH#>
-
-  Options FollowSymLinks
-  AllowOverride None
-
-  # Protect files and directories from prying eyes.
-  <FilesMatch \"\.(engine|inc|info|install|make|module|profile|test|po|sh|.*sql|theme|tpl(\.php)?|xtmpl)$|^(\..*|Entries.*|Repository|Root|Tag|Template)$\">
-    Order allow,deny
-  </FilesMatch>
-
-  # Hide these from public view.
-  <FilesMatch \"(^LICENSE|CHANGELOG|MAINTAINERS|INSTALL|UPGRADE|API|README).*\.txt$\">
-    Order deny,allow
-    Deny from all 
-  </FilesMatch>
-
-  RewriteEngine on
-  RewriteRule \"(^|/)\.\" - [F]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_URI} !=/favicon.ico
-  RewriteRule ^ index.php [L]
-
-  RewriteCond %{HTTP:Accept-encoding} gzip
-  RewriteCond %{REQUEST_FILENAME}\.gz -s
-  RewriteRule ^(.*)\.css $1\.css\.gz [QSA]
-
-  # Serve gzip compressed JS files if they exist and the client accepts gzip.
-  RewriteCond %{HTTP:Accept-encoding} gzip
-  RewriteCond %{REQUEST_FILENAME}\.gz -s
-  RewriteRule ^(.*)\.js $1\.js\.gz [QSA]
-
-  # Serve correct content types, and prevent mod_deflate double gzip.
-  RewriteRule \.css\.gz$ - [T=text/css,E=no-gzip:1]
-  RewriteRule \.js\.gz$ - [T=text/javascript,E=no-gzip:1]
-
-  <FilesMatch \"(\.js\.gz|\.css\.gz)$\">
-    # Serve correct encoding type.
-    Header set Content-Encoding gzip
-    # Force proxies to cache gzipped & non-gzipped css/js files separately.
-    Header append Vary Accept-Encoding
-  </FilesMatch>
-
-</Directory>
-
-<VirtualHost *:80>
-  ServerName #DOMAIN#
-  DocumentRoot #CODEPATH#
-  LogLevel warn
-  ServerSignature Off
-</VirtualHost>
-");
-
-/**
- * This is the virtual hosts template file for settings.php file.
- */
-define('BUCK_SETTINGS_PHP_TEMPLATE', "<?php
-\$databases = array (
-  'default' =>
-  array (
-    'default' =>
-    array (
-      'database' => '#DATABASE#',
-      'username' => '#USERNAME#',
-      'password' => '#PASSWORD#',
-      'host' => 'localhost',
-      'port' => '',
-      'driver' => 'mysql',
-      'prefix' => '',
-    ),
-  ),
-);
-\$update_free_access = FALSE;
-\$base_url = '#URL#';
-ini_set('session.gc_probability', 1);
-ini_set('session.gc_divisor', 100);
-ini_set('session.gc_maxlifetime', 200000);
-ini_set('session.cookie_lifetime', 2000000);
-\$conf['404_fast_paths_exclude'] = '/\/(?:styles)\//';
-\$conf['404_fast_paths'] = '/\.(?:txt|png|gif|jpe?g|css|js|ico|swf|flv|cgi|bat|pl|dll|exe|asp)$/i';
-\$conf['404_fast_html'] = '<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL \"@path\" was not found on this server.</p></body></html>';
-drupal_fast_404();
-");
+define('BUCK_BUILD_MAKE_TEMPLATE_FILE', 'git_build_make.php');
+define('BUCK_APACHE_TEMPLATE_FILE', 'vhost.conf');
+define('BUCK_SETTINGS_PHP_TEMPLATE_FILE', 'settings.php');
 
 /**
  * Helper function for running SQL on a local mysql database.
@@ -177,12 +80,14 @@ function buck_create_webserver_config($site_record) {
     }
   }
 
-  $str_config = BUCK_APACHE_TEMPLATE;
-
-  buck_color_log("Creating apache config (/etc/apache2/sites-enabled/$domain)", 'ok');
-
-  $str_config = str_replace("#DOMAIN#", $site_record['uri'], $str_config);
-  $str_config = str_replace("#CODEPATH#", $site_record['root'], $str_config);
+  $twig = buck_create_twig_instance();
+  $str_config = $twig->render(
+    BUCK_APACHE_TEMPLATE_FILE,
+    array(
+      'path' => $site_record['root'],
+      'domain' => $site_record['uri'],
+    )
+  );
 
   $config_handle = fopen("/etc/apache2/sites-available/$domain", "w+");
   fwrite($config_handle, $str_config);
@@ -474,18 +379,19 @@ function buck_profile_install($site_record) {
  */
 function buck_profile_make($site_record) {
   if (isset($site_record['makefile'])) {
-
     buck_color_log("Downloading and installing through make file ...", 'ok');
 
     buck_destroy_code($site_record);
-
-    $temp_dir = drush_tempdir();
     buck_git_update($temp_dir, $site_record['git']);
 
-    $str_config = BUCK_BUILD_MAKE_TEMPLATE;
-    $str_config = str_replace("#PROFILE#", $site_record['profile'], $str_config);
-    $str_config = str_replace("#GITURL#", $site_record['git']['url'], $str_config);
-    $str_config = str_replace("#GITBRANCH#", $site_record['git']['branch'], $str_config);
+    $temp_dir = drush_tempdir();
+    $twig = buck_create_twig_instance();
+    $str_config = $twig->render(
+      BUCK_BUILD_MAKE_TEMPLATE_FILE,
+      array(
+        'site_record' => $site_record
+      )
+    );
 
     $config_handle = fopen($temp_dir . '/build-' . $site_record['profile'] . '.make', "w+");
     fwrite($config_handle, $str_config);
@@ -597,11 +503,13 @@ function buck_create_settings_php($site_record) {
     $folder = $site_record['root'] . '/sites/default';
   }
   // Add settings.php
-  $str_config = BUCK_SETTINGS_PHP_TEMPLATE;
-  $str_config = str_replace("#DATABASE#", $site_record['database'], $str_config);
-  $str_config = str_replace("#USERNAME#", $site_record['database'], $str_config);
-  $str_config = str_replace("#PASSWORD#", $site_record['db_pass'], $str_config);
-  $str_config = str_replace("#URL#", 'http://' . $site_record['uri'], $str_config);
+  $twig = buck_create_twig_instance();
+  $str_config = $twig->render(
+    BUCK_SETTINGS_PHP_TEMPLATE_FILE,
+    array(
+      'site_record' => $site_record,
+    )
+  );
   if (!is_readable($folder)) {
     drush_mkdir($folder);
   }
@@ -1066,4 +974,12 @@ function buck_drush_sql_get_credentials($db_spec = NULL) {
 
   // Join the parameters and return.
   return ' ' . implode(' ', $parameter_strings);
+}
+
+function buck_create_twig_instance() {
+  require_once 'vendor/autoload.php';
+  $templates_dir = implode('/', array(dirname(__FILE__), 'templates'));
+  $loader = new Twig_Loader_Filesystem($templates_dir);
+  $twig = new Twig_Environment($loader, array('cache' => drush_tempdir()));
+  return $twig;
 }
