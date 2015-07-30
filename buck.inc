@@ -414,7 +414,8 @@ function buck_sync_database($site_record) {
 
     $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
     $database = isset($sync_source['database']) && $sync_source['database'] ? $sync_source['database'] : str_replace(array('.', '-'), '_', $sync_source['#name']);
-    buck_shell_exec('/usr/bin/ssh -tq ' . $sync_source['remote-user'] . '@' . $sync_source['remote-host'] . ' "mysqldump ' . $database . '" > ' . $tmp_file_name);
+    $command = 'drush @' . $site_record['sync-source'] . " sql-dump > $tmp_file_name";
+    buck_shell_exec($command);
 
     buck_archive_database($site_record);
     buck_destroy_database($site_record);
