@@ -444,9 +444,11 @@ function buck_sync_database($site_record) {
 function buck_archive_database($site_record) {
   $temp_file = '/tmp/' . $site_record['database'] . '-' . time() . '.sql';
   buck_color_log("Archiving the database temporarily ...", 'ok');
+  $alias = drush_sitealias_get_record('@self');
+  $alias = empty($alias) ? "@" . $site_record['#name'] : $alias;
 
   drush_invoke_process(
-    '@self',
+    $alias,
     'sql-dump',
     array("--result-file=" . $temp_file),
     array("--gzip"),
