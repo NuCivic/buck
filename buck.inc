@@ -220,7 +220,7 @@ function buck_git_pull($directory) {
   // TODO: Check to make sure that there are no
   // uncommitted changes etc.
   $command = 'git pull --rebase';
-  buck_passthru_shell_cd_and_exec($directory, 'git pull --rebase');
+  buck_passthru_shell_cd_and_exec($directory, $command);
 }
 
 /**
@@ -261,12 +261,13 @@ function buck_sync_files($site_record) {
   // See: http://drupal.org/node/1613376.
   $alias = drush_sitealias_get_record('@self');
   buck_clean_alias($alias);
+  $alias = empty($alias) ? "@" . $site_record['#name'] : $alias;
   drush_invoke_process(
     $alias,
     'rsync',
     array("@" . $site_record['sync-source'] . ":%files", "@" . $site_record['#name'] . ":%files"),
-    array('-y'),
-    array('interactive' => TRUE)
+    array('--yes', '--interactive'),
+    FALSE
   );
   buck_color_log("... done", "ok");
 }
