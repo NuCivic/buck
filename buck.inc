@@ -543,6 +543,7 @@ function buck_permissions_cleanup($site_record) {
  * Deletes the sites files using rm -rf.  Also path.old.
  */
 function buck_destroy_code($site_record) {
+  buck_shell_exec('sudo chmod -R 0755 ' . $site_record['base_root']);
   buck_shell_exec('sudo rm -rf ' . $site_record['base_root']);
 }
 
