@@ -82,7 +82,7 @@ function buck_drush_command() {
     'options' => array(
       'dbuser'       => 'Optional. Defaults to "root"',
       'dbpassword'   => 'Optional. Root mysql password.  Defaults to ""',
-      'db-url'       => 'Optional.  DB url.  Defaults to "mysql://[domain]]:[domain]@localhost/[domain]" (replace . with _ in [domain])',
+      'db-url'       => 'Optional.  DB url.  Defaults to "mysql://[domain]:[domain]@localhost/[domain]" (replace . with _ in [domain])',
       'db-prefix'    => 'Optional.  DB table prefix.  Defaults to ""',
       'sync-source' => 'Optional.  Site that @self will sync from."',
     ),
