@@ -26,7 +26,7 @@ function pantheon_buck_sync_files($site_record) {
  */
 function pantheon_buck_sync_database($site_record) {
   buck_color_log('Syncing database from pantheon...', 'ok');
-  $sync_source = drush_sitealias_get_record('@' . $site_record['sync-source']);
+  $sync_source = drush_sitealias_get_record($site_record['sync-source']);
 
   $site_record['multisite'] = TRUE;
   buck_destroy_database($site_record);
@@ -36,7 +36,7 @@ function pantheon_buck_sync_database($site_record) {
 
   $dump_cmd = 'drush ' . $site_record['sync-source']  . ' sql-dump > ' . $temp_file;
   $sql_cmd = 'mysql ' . $site_record['database'] . ' < ' . $temp_file;
-  buck_color_log('Dumping database from pantheon to ' . $tmp_file  . ' ...', 'ok');
+  buck_color_log('Dumping database from pantheon to ' . $temp_file  . ' ...', 'ok');
   buck_passthru_shell_exec($dump_cmd);
   buck_color_log('Importing database ...', 'ok');
   buck_passthru_shell_exec($sql_cmd);
