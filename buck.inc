@@ -128,6 +128,7 @@ function buck_command_drush($site_record) {
   if (isset($site_record['drush_command'])) {
     foreach ($site_record['drush_command'] as $command => $vars) {
       // Allow for multiple versions of the same command.
+      $vars = is_array($vars) ? $vars : ['arg' => $vars];
       if (!isset($vars['arg'])) {
         foreach ($vars as $subvars) {
           buck_fire_command($command, $subvars);
