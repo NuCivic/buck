@@ -34,8 +34,13 @@ function _buck_perms_arg_list() {
 function buck_drush_command() {
   $items = array();
   $items['buck'] = array(
-    'description' => "Fetch a site. If 'makefile' is present will build via  makefile. If 'sync-source' is present will sync local version to sync-source. If neither are present will download Drupal Core 7.x with specified root, uri, and other included options.",
-    'options' => array(
+      'description' => "Fetch a site. If 'makefile' is present will build via  makefile. If 'sync-source' is present will sync local version to sync-source. If neither are present will download Drupal Core 7.x with specified root, uri, and other included options.",
+      'drush dependencies' => array('sql', 'core'),
+      'arguments' => array(
+        'target' => 'A site alias for a target you want to build locally.',
+      ),
+      'required-arguments' => TRUE,
+      'options' => array(
       'uri'       => 'Required.  Domain name of new site.',
       'root'     => ' Required.  Path to drupal code."',
       'git' => 'Optional. Array consisting of "url" and "branch". Defaults to Drupal Core 7.x. Ie if you do not specify you will download Drupal Core.',
@@ -59,6 +64,7 @@ function buck_drush_command() {
       'no-web' => 'Skip webserver creation or update',
     ),
     'examples' => array(
+      'drush buck @target' => 'Builds target locally according to target options.  See options list for available alias options.',
       'Create D7 site in one command: setup dns, apache, create db, download d6, run installer, open in firefox' => 'drush buck-create --domain=example1.dev',
       'Quick D6 site' => 'drush qc --domain=example2.dev --makefile=d6.make',
       'Just DNS (/etc/hosts)' => 'drush buck-create dns --domain=example.dev',
