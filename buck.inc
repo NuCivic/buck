@@ -584,6 +584,10 @@ function _buck_default_params($site_record) {
     );
     $site_record['git'] = _return_second_if_first_empty($site_record['git'], $git);
   }
+  elseif ($site_record['#group'] == 'acquia') {
+    $base_root = str_replace("/docroot", "", $site_record['root']);
+    $site_record['base_root'] = _return_second_if_first_empty($site_record['base_root'], $base_root);
+  }
 
   $domain = str_replace('/', '', $site_record['uri']);
   if ($site_record['db-name']) {
