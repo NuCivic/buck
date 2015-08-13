@@ -572,7 +572,7 @@ function buck_generate_password($length = 10) {
  */
 function _buck_default_params($site_record) {
   if ($site_record['#group'] == 'pantheon') {
-    $site_record['sync-source'] = '@' . $site_record['#name'];
+    $site_record['sync-source'] = _return_second_if_first_empty($site_record['sync-source'], '@' . $site_record['#name']);
     $site_record['sync-host'] = 'pantheon';
     $site = explode(".", $site_record['#name']);
     $site_record['root'] = '/var/www/' . $site[1];
@@ -988,4 +988,8 @@ function buck_create_twig_instance() {
   $loader = new Twig_Loader_Filesystem($templates_dir);
   $twig = new Twig_Environment($loader, array('cache' => drush_tempdir()));
   return $twig;
+}
+
+function _return_second_if_first_empty ($first, $second) {
+    return empty($first) ?  $second : $first;
 }
