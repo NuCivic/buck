@@ -580,7 +580,7 @@ function _buck_default_params($site_record) {
     $site_record['uri'] = $site[1] . '.local';
     $site_record['git'] = array(
       'branch' => 'master',
-      'url' => 'ssh://codeserver.' . $site_record['remote_user'] . '@codeserver.' . $site_record['remote_user'] . '.drush.in:2222/~/repository.git',
+      'url' => 'ssh://codeserver.' . $site_record['remote-user'] . '@codeserver.' . $site_record['remote-user'] . '.drush.in:2222/~/repository.git',
     );
   }
   $domain = str_replace('/', '', $site_record['uri']);
