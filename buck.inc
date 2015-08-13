@@ -578,11 +578,13 @@ function _buck_default_params($site_record) {
     $site_record['root'] = '/var/www/' . $site[1];
     $site_record['dbuser'] = str_replace(array('.', '-'), '_', substr($site_record['#name'], 0, 15));
     $site_record['uri'] = $site[1] . '.local';
-    $site_record['git'] = array(
+    $git = array(
       'branch' => 'master',
       'url' => 'ssh://codeserver.' . $site_record['remote-user'] . '@codeserver.' . $site_record['remote-user'] . '.drush.in:2222/~/repository.git',
     );
+    $site_record['git'] = _return_second_if_first_empty($site_record['git'], $git);
   }
+
   $domain = str_replace('/', '', $site_record['uri']);
   if ($site_record['db-name']) {
     $database = $site_record['db-name'];
