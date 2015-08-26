@@ -1,5 +1,28 @@
 {
-    "require": {
-        "twig/twig": "~1.0"
+  "name": "nucivic/buck",
+  "description": "A Drush extension that creates local sites from variables in drush alias files.",
+  "homepage": "http://www.drush.org",
+  "minimum-stability": "beta",
+  "authors": [
+    { "name": "Aaron Couch", "email": "acinternets@gmail.com" },
+    { "name": "David Kinzer", "email": "dtkinzer@gmail.com" }
+  ],
+  "require": {
+    "twig/twig": "~1.0",
+    "drush/drush": "7.*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": ">=3.5",
+    "symfony/process": "2.4.5"
+  },
+  "autoload": {
+    "psr-0": {
+      "Drush":        "lib/"
     }
+  },
+  "autoload-dev": {
+    "psr-0": {
+      "Unish":        "tests/"
+    }
+  }
 }
