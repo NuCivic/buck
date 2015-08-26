@@ -1,7 +1,7 @@
 {
   "name": "nucivic/buck",
   "description": "A Drush extension that creates local sites from variables in drush alias files.",
-  "homepage": "http://www.drush.org",
+  "homepage": "https://github.com/NuCivi/buck,
   "minimum-stability": "beta",
   "license": "GPL-2.0+",
   "authors": [
