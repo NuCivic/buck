@@ -17,12 +17,12 @@
   },
   "autoload": {
     "psr-0": {
-      "Drush":        "lib/"
+      "Drush":        "vendor/drush/drush/lib/"
     }
   },
   "autoload-dev": {
     "psr-0": {
-      "Unish":        "tests/"
+      "Unish":        "vendor/drush/drush/tests/"
     }
   }
 }
