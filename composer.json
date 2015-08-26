@@ -3,6 +3,7 @@
   "description": "A Drush extension that creates local sites from variables in drush alias files.",
   "homepage": "http://www.drush.org",
   "minimum-stability": "beta",
+  "license": "GPL-2.0+",
   "authors": [
     { "name": "Aaron Couch", "email": "acinternets@gmail.com" },
     { "name": "David Kinzer", "email": "dtkinzer@gmail.com" }
